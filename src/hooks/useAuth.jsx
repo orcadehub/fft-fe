@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
+import api, { API_BASE_URL } from '../services/api';
 
 const AuthContext = createContext();
-
-const API_URL = 'http://localhost:4400/api/auth';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -26,9 +25,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         try {
-          const res = await axios.get('http://localhost:4400/api/auth/profile', {
-            headers: { Authorization: `Bearer ${storedToken}` }
-          });
+          const res = await api.get('/api/auth/profile');
           setUser(res.data);
           localStorage.setItem('ff_user', JSON.stringify(res.data));
         } catch (err) {
@@ -55,10 +52,9 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (!user?._id) return;
-
-    const backendUrl = 'http://localhost:4400';
-    console.log(`[Socket] Connecting to ${backendUrl} for User: ${user._id}`);
-    const socket = io(backendUrl);
+    
+    console.log(`[Socket] Connecting to ${API_BASE_URL} for User: ${user._id}`);
+    const socket = io(API_BASE_URL);
     
     socket.emit('join_user', user._id);
 
@@ -82,7 +78,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (ffUid, password) => {
     try {
-      const res = await axios.post(`${API_URL}/login`, { ffUid, password });
+      const res = await api.post('/api/auth/login', { ffUid, password });
       const { token, user: userData } = res.data;
       
       setToken(token);
@@ -98,7 +94,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (ffUid, password, inGameName, level) => {
     try {
-      const res = await axios.post(`${API_URL}/register`, { 
+      const res = await api.post('/api/auth/register', { 
         ffUid, 
         password,
         inGameName,

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { TrophyIcon, StarIcon, FireIcon } from '@heroicons/react/24/solid';
 
 const Leaderboard = () => {
@@ -9,7 +9,7 @@ const Leaderboard = () => {
     useEffect(() => {
         const fetchLeaderboard = async () => {
             try {
-                const res = await axios.get('http://localhost:4400/api/tournaments/leaderboard');
+                const res = await api.get('/api/tournaments/leaderboard');
                 setPlayers(res.data);
             } catch (err) {
                 console.error('Leaderboard error:', err);

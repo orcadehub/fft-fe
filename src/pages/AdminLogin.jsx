@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { ShieldCheckIcon, LockClosedIcon, UserIcon } from '@heroicons/react/24/solid';
 import { motion } from 'framer-motion';
+import api from '../services/api';
 
 const AdminLogin = () => {
   const [username, setUsername] = useState('');
@@ -17,7 +17,7 @@ const AdminLogin = () => {
     setError('');
 
     try {
-      const res = await axios.post('http://localhost:4400/api/moderators/login', {
+      const res = await api.post('/api/moderators/login', {
         username,
         password
       });
@@ -27,7 +27,7 @@ const AdminLogin = () => {
       localStorage.setItem('moderator', JSON.stringify(res.data.moderator));
       
       // Redirect to a specific dashboard or just tournament creator
-      navigate('/moderators/agt/dashboard'); // You can change this to wherever they should go
+      navigate('/moderators/agt/dashboard'); 
       
     } catch (err) {
       if (err.response && err.response.data && err.response.data.error) {

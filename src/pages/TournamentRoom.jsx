@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
 import { io } from 'socket.io-client';
 import { useAuth } from '../hooks/useAuth';
+import api, { API_BASE_URL } from '../services/api';
 import { UsersIcon, TrophyIcon, ShieldCheckIcon, FireIcon } from '@heroicons/react/24/solid';
 import WalletModal from '../components/WalletModal';
 import JoinConfirmationModal from '../components/JoinConfirmationModal';
@@ -27,7 +27,7 @@ const TournamentRoom = () => {
   useEffect(() => {
     const fetchTournament = async () => {
       try {
-        const res = await axios.get(`http://localhost:4400/api/tournaments/${id}`);
+        const res = await api.get(`/api/tournaments/${id}`);
         setTournament(res.data);
       } catch (err) {
         setError('Failed to load tournament');
@@ -35,7 +35,7 @@ const TournamentRoom = () => {
     };
     fetchTournament();
 
-    const socket = io('http://localhost:4400');
+    const socket = io(API_BASE_URL);
     socket.emit('join_tournament', id);
     
     socket.on('player_joined', (players) => {
@@ -60,9 +60,7 @@ const TournamentRoom = () => {
     
     try {
       // Direct Join via Wallet
-      const res = await axios.post(`http://localhost:4400/api/tournaments/${id}/join`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.post(`/api/tournaments/${id}/join`);
 
       if (res.data.tournament) {
         setTournament(res.data.tournament);

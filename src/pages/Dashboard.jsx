@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FireIcon, UserGroupIcon, UserIcon, UsersIcon, ClockIcon, PlayCircleIcon, CheckCircleIcon } from '@heroicons/react/24/solid';
 import TournamentCard from '../components/TournamentCard';
-import axios from 'axios';
+import api from '../services/api';
 
 import ffHeroBg1 from '../assets/fflogo1.jpg';
 import ffHeroBg2 from '../assets/fflogo2.jpg';
@@ -38,13 +38,11 @@ const Dashboard = () => {
                         setTournaments([]);
                         return;
                     }
-                    const res = await axios.get('http://localhost:4400/api/tournaments/enrolled', {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
+                    const res = await api.get('/api/tournaments/enrolled');
                     const filtered = res.data.filter(t => t.status === enrolledStatus);
                     setTournaments(filtered);
                 } else {
-                    const res = await axios.get('http://localhost:4400/api/tournaments/live');
+                    const res = await api.get('/api/tournaments/live');
                     const filtered = res.data.filter(t => {
                         const matchedMode = (mode === 'clashsquad' ? 'Clash Squad' : 'Classic');
                         return t.gameMode === matchedMode && t.teamSize === teamSize;

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import TournamentCard from '../components/TournamentCard';
 import { FireIcon } from '@heroicons/react/24/solid';
-import axios from 'axios';
+import api from '../services/api';
 import ffHeroBg1 from '../assets/fflogo1.jpg';
 import ffHeroBg2 from '../assets/fflogo2.jpg';
 import ffHeroBg3 from '../assets/fflogo3.jpg';
@@ -24,7 +24,7 @@ const Home = () => {
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
-        const res = await axios.get('http://localhost:4400/api/tournaments/live');
+        const res = await api.get('/api/tournaments/live');
         setTournaments(res.data);
       } catch (err) {
         console.error(err);

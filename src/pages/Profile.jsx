@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { CheckBadgeIcon, ShieldCheckIcon, KeyIcon, IdentificationIcon, MagnifyingGlassIcon, ChartBarIcon } from '@heroicons/react/24/solid';
 import WalletModal from '../components/WalletModal';
@@ -42,7 +42,7 @@ const Profile = () => {
     setVerifyingUid(true);
     
     try {
-      const res = await axios.get(`http://localhost:4400/api/auth/verify/${ffUid}`);
+      const res = await api.get(`/api/auth/verify/${ffUid}`);
       
       if (res.data.success) {
         setDetectedPlayer({ 

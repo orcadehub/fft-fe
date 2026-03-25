@@ -6,7 +6,7 @@ import {
   CheckCircleIcon, PlusCircleIcon, TrashIcon, PencilSquareIcon 
 } from '@heroicons/react/24/solid';
 import { CurrencyRupeeIcon } from '@heroicons/react/24/outline';
-import axios from 'axios';
+import api from '../services/api';
 
 import ffHeroBg1 from '../assets/fflogo1.jpg';
 import ffHeroBg2 from '../assets/fflogo2.jpg';
@@ -84,9 +84,7 @@ const AdminDashboard = () => {
     const fetchTournaments = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:4400/api/moderators/tournaments', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get('/api/moderators/tournaments');
             const filtered = res.data.filter(t => {
                 const matchedMode = (mode === 'clashsquad' ? 'Clash Squad' : 'Classic');
                 return t.gameMode === matchedMode && t.teamSize === teamSize;
@@ -116,9 +114,7 @@ const AdminDashboard = () => {
     const confirmDelete = async () => {
         if (deleteConfirmText !== 'DELETE') return;
         try {
-            await axios.delete(`http://localhost:4400/api/moderators/tournaments/${deletingTournamentId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/api/moderators/tournaments/${deletingTournamentId}`);
             setTournaments(tournaments.filter(t => t._id !== deletingTournamentId));
             setIsDeleteModalOpen(false);
         } catch (err) {
@@ -144,11 +140,11 @@ const AdminDashboard = () => {
     const handleEditSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.put(`http://localhost:4400/api/moderators/tournaments/${editingTournament._id}`, {
+            await api.put(`/api/moderators/tournaments/${editingTournament._id}`, {
                 roomCode: editForm.roomCode,
                 password: editForm.password,
                 status: editForm.status
-            }, { headers: { Authorization: `Bearer ${token}` }});
+            });
             setIsEditModalOpen(false);
             fetchTournaments();
         } catch (err) {
@@ -168,9 +164,7 @@ const AdminDashboard = () => {
                 startTime: createStartTime ? new Date(createStartTime).toISOString() : undefined,
                 prizePool: Number(createPrizePool)
             };
-            await axios.post('http://localhost:4400/api/moderators/tournaments', payload, { 
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.post('/api/moderators/tournaments', payload);
             setIsCreateModalOpen(false);
             fetchTournaments();
         } catch (err) {

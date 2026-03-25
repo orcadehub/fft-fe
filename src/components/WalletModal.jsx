@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { CreditCardIcon, XMarkIcon, CurrencyRupeeIcon, CheckCircleIcon } from '@heroicons/react/24/outline'; // fixed: using outline for consistency or match existing style
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,10 +20,8 @@ const WalletModal = ({ isOpen, onClose, requiredAmount, onRechargeSuccess }) => 
     setLoading(true);
 
     try {
-      const orderRes = await axios.post(`http://localhost:4400/api/payments/recharge`, {
+      const orderRes = await api.post('/api/payments/recharge', {
         amount: parseInt(amount)
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
 
       const { order, keyId } = orderRes.data;
@@ -37,10 +35,8 @@ const WalletModal = ({ isOpen, onClose, requiredAmount, onRechargeSuccess }) => 
         order_id: order.id,
         handler: async (response) => {
           try {
-            const verifyRes = await axios.post(`http://localhost:4400/api/payments/verify`, {
+            const verifyRes = await api.post('/api/payments/verify', {
               ...response
-            }, {
-              headers: { Authorization: `Bearer ${token}` }
             });
 
             if (verifyRes.data.status === 'Recharge Successful') {

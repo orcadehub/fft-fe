@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -24,9 +24,7 @@ const Wallet = () => {
 
   const fetchTransactions = async () => {
     try {
-      const res = await axios.get('http://localhost:4400/api/payments/transactions', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get('/api/payments/transactions');
       setTransactions(res.data);
     } catch (err) {
       console.error(err);
