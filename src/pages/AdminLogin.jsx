@@ -14,7 +14,6 @@ const AdminLogin = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
       const res = await api.post('/api/moderators/login', {

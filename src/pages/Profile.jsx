@@ -37,8 +37,8 @@ const Profile = () => {
 
   // Handle UID Verification (Real FF API fetch via Backend)
   const handleVerifyUid = async () => {
-    if (!ffUid) return setError('Please enter a UID to verify.');
-    setError('');
+    if (!ffUid) return toast.warn('Please enter a UID to verify.');
+
     setVerifyingUid(true);
     
     try {
@@ -64,7 +64,7 @@ const Profile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+
 
     let result;
     if (isLoginMode) {
@@ -113,13 +113,13 @@ const Profile = () => {
             {/* Toggle Modes */}
             <div className="flex bg-black/40 p-1 rounded-xl mb-8 relative z-10 border border-white/5">
                 <button 
-                    onClick={() => { setIsLoginMode(true); setError(''); setIsUidVerified(false); }}
+                    onClick={() => { setIsLoginMode(true); setIsUidVerified(false); }}
                     className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${isLoginMode ? 'bg-ff-orange text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
                 >
                     Login
                 </button>
                 <button 
-                    onClick={() => { setIsLoginMode(false); setError(''); setIsUidVerified(false); }}
+                    onClick={() => { setIsLoginMode(false); setIsUidVerified(false); }}
                     className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${!isLoginMode ? 'bg-ff-orange text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
                 >
                     Signup

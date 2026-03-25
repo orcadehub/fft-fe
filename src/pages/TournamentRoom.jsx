@@ -51,12 +51,12 @@ const TournamentRoom = () => {
 
   const handleJoin = async () => {
     if (!user) {
-      setError('Please login first');
+      toast.error('Please login first');
       return;
     }
 
     setLoading(true);
-    setError('');
+
     
     try {
       // Direct Join via Wallet
