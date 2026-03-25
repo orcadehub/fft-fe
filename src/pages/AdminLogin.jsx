@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { ShieldCheckIcon, LockClosedIcon, UserIcon } from '@heroicons/react/24/solid';
 import { motion } from 'framer-motion';
 import api from '../services/api';
+import { toast } from 'react-toastify';
 
 const AdminLogin = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -27,14 +27,12 @@ const AdminLogin = () => {
       localStorage.setItem('moderator', JSON.stringify(res.data.moderator));
       
       // Redirect to a specific dashboard or just tournament creator
+      toast.success('Admin authorized');
       navigate('/moderators/agt/dashboard'); 
       
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.error) {
-        setError(err.response.data.error);
-      } else {
-        setError('Login failed. Please check credentials.');
-      }
+      const errMsg = err.response?.data?.error || 'Login failed. Please check credentials.';
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -60,12 +58,6 @@ const AdminLogin = () => {
           <h2 className="text-2xl font-black uppercase text-white tracking-widest mb-2">Moderator access</h2>
           <p className="text-xs text-gray-500 uppercase font-bold tracking-[0.2em]">Restricted Area</p>
         </div>
-
-        {error && (
-          <div className="bg-red-900/30 border border-red-500/50 text-red-400 p-3 rounded-lg text-xs font-bold uppercase tracking-widest text-center mb-6 animate-pulse">
-            ⚠️ {error}
-          </div>
-        )}
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">

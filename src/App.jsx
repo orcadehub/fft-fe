@@ -10,11 +10,14 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import Leaderboard from './pages/Leaderboard';
 import { AuthProvider } from './hooks/useAuth';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   return (
     <Router>
       <AuthProvider>
+        <ToastContainer theme="dark" position="bottom-right" />
         <div className="min-h-screen bg-gray-900 text-white flex flex-col font-sans">
           <Navbar />
           <main className="flex-grow">

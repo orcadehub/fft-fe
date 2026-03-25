@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { CurrencyRupeeIcon, FireIcon } from '@heroicons/react/24/solid';
 
@@ -26,9 +26,7 @@ const CreateTournament = () => {
     
     try {
       const payload = { ...formData, entryFee: isFree ? 0 : formData.entryFee };
-      const res = await axios.post('http://localhost:4400/api/tournaments', payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.post('/api/tournaments', payload);
       navigate(`/tournament/${res.data._id}`);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create tournament');

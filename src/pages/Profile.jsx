@@ -4,6 +4,7 @@ import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { CheckBadgeIcon, ShieldCheckIcon, KeyIcon, IdentificationIcon, MagnifyingGlassIcon, ChartBarIcon } from '@heroicons/react/24/solid';
 import WalletModal from '../components/WalletModal';
+import { toast } from 'react-toastify';
 
 import ffHeroBg1 from '../assets/fflogo1.jpg';
 import ffHeroBg2 from '../assets/fflogo2.jpg';
@@ -17,7 +18,6 @@ const Profile = () => {
   const [ffUid, setFfUid] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [bgIndex, setBgIndex] = useState(0);
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
@@ -50,10 +50,11 @@ const Profile = () => {
           level: res.data.level 
         });
         setIsUidVerified(true);
+        toast.success(`UID Verified: ${res.data.name}`);
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || 'Could not verify UID. Make sure it is correct.');
+      toast.error(err.response?.data?.error || 'Could not verify UID. Make sure it is correct.');
       setIsUidVerified(false);
     } finally {
       setVerifyingUid(false);
@@ -70,7 +71,7 @@ const Profile = () => {
       result = await login(ffUid, password);
     } else {
       if (!isUidVerified) {
-        setError('Please verify your UID first.');
+        toast.warn('Please verify your UID first.');
         setLoading(false);
         return;
       }
@@ -80,8 +81,9 @@ const Profile = () => {
 
     setLoading(false);
     if (!result.success) {
-      setError(result.error || 'Authentication failed');
+      toast.error(result.error || 'Authentication failed');
     } else {
+      toast.success(isLoginMode ? 'Welcome back!' : 'Account created successfully!');
       navigate('/dashboard');
     }
   };
@@ -125,7 +127,6 @@ const Profile = () => {
             </div>
             
             <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-              {error && <div className="text-red-500 bg-red-500/10 p-3 rounded text-xs text-center border border-red-500/30 font-bold backdrop-blur-sm">{error}</div>}
               
               <div className="animate-fade-in space-y-6">
                   {/* UID Field with Auto-Verification */}

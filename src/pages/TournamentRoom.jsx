@@ -6,12 +6,12 @@ import api, { API_BASE_URL } from '../services/api';
 import { UsersIcon, TrophyIcon, ShieldCheckIcon, FireIcon } from '@heroicons/react/24/solid';
 import WalletModal from '../components/WalletModal';
 import JoinConfirmationModal from '../components/JoinConfirmationModal';
+import { toast } from 'react-toastify';
 
 const TournamentRoom = () => {
   const { id } = useParams();
   const { user, token, updateUserWallet } = useAuth();
   const [tournament, setTournament] = useState(null);
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -30,7 +30,7 @@ const TournamentRoom = () => {
         const res = await api.get(`/api/tournaments/${id}`);
         setTournament(res.data);
       } catch (err) {
-        setError('Failed to load tournament');
+        toast.error('Failed to load tournament');
       }
     };
     fetchTournament();
@@ -67,6 +67,7 @@ const TournamentRoom = () => {
         if (updateUserWallet) {
           updateUserWallet(res.data.walletBalance);
         }
+        toast.success('Joined successfully! Good luck.');
       }
       setIsJoinModalOpen(false);
     } catch (err) {
@@ -76,7 +77,7 @@ const TournamentRoom = () => {
         setMissingAmount(data.missingAmount);
         setIsWalletModalOpen(true);
       } else {
-        setError(data?.error || 'Failed to join tournament');
+        toast.error(data?.error || 'Failed to join tournament');
       }
     } finally {
       setLoading(false);
@@ -107,7 +108,7 @@ const TournamentRoom = () => {
 
   const handleJoinClick = () => {
     if (!user) {
-      setError('Please login first');
+      toast.info('Please login to join tournaments');
       return;
     }
     if (user.walletBalance < perPlayerFee) {
@@ -120,11 +121,6 @@ const TournamentRoom = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      {error && (
-        <div className="bg-red-600/10 border border-red-500/50 text-red-400 p-4 rounded-xl text-center font-black uppercase tracking-[0.2em] shadow-[0_0_25px_rgba(239,68,68,0.2)] mb-8 animate-pulse text-xs">
-          <span className="mr-2">⚠️</span> {error}
-        </div>
-      )}
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-6">

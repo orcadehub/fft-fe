@@ -3,6 +3,7 @@ import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { CreditCardIcon, XMarkIcon, CurrencyRupeeIcon, CheckCircleIcon } from '@heroicons/react/24/outline'; // fixed: using outline for consistency or match existing style
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-toastify';
 
 const WalletModal = ({ isOpen, onClose, requiredAmount, onRechargeSuccess }) => {
   const { user, token, updateUserWallet } = useAuth();
@@ -13,7 +14,7 @@ const WalletModal = ({ isOpen, onClose, requiredAmount, onRechargeSuccess }) => 
 
   const handleRecharge = async () => {
     if (amount % 100 !== 0) {
-      setError('Amount must be a multiple of 100 (e.g., 100, 200, 300...)');
+      toast.error('Amount must be a multiple of 100');
       return;
     }
     setError('');
@@ -52,7 +53,7 @@ const WalletModal = ({ isOpen, onClose, requiredAmount, onRechargeSuccess }) => 
               }, 2000);
             }
           } catch (err) {
-            setError('Payment verification failed. Please contact support.');
+            toast.error('Payment verification failed.');
           }
         },
         prefill: {
@@ -66,7 +67,7 @@ const WalletModal = ({ isOpen, onClose, requiredAmount, onRechargeSuccess }) => 
       const rzp = new window.Razorpay(options);
       rzp.open();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to initialize recharge');
+      toast.error(err.response?.data?.error || 'Failed to initialize recharge');
     } finally {
       setLoading(false);
     }
@@ -123,7 +124,6 @@ const WalletModal = ({ isOpen, onClose, requiredAmount, onRechargeSuccess }) => 
                   />
                 </div>
               </div>
-
               <div className="grid grid-cols-3 gap-3">
                 {[100, 200, 500].map(val => (
                   <button 
@@ -135,8 +135,6 @@ const WalletModal = ({ isOpen, onClose, requiredAmount, onRechargeSuccess }) => 
                   </button>
                 ))}
               </div>
-
-              {error && <p className="text-red-500 text-xs font-bold text-center uppercase tracking-wide bg-red-500/5 py-3 rounded-lg border border-red-500/10">{error}</p>}
 
               <button 
                 onClick={handleRecharge}

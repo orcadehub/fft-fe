@@ -12,6 +12,7 @@ import {
   ChevronRightIcon
 } from '@heroicons/react/24/solid';
 import WalletModal from '../components/WalletModal';
+import { toast } from 'react-toastify';
 
 const Wallet = () => {
   const { user, token } = useAuth();
@@ -27,6 +28,7 @@ const Wallet = () => {
       const res = await api.get('/api/payments/transactions');
       setTransactions(res.data);
     } catch (err) {
+      toast.error('Failed to load transactions');
       console.error(err);
     } finally {
       setLoading(false);

@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+
 import { io } from 'socket.io-client';
 import api, { API_BASE_URL } from '../services/api';
+import { toast } from 'react-toastify';
 
 const AuthContext = createContext();
 
@@ -60,6 +61,7 @@ export const AuthProvider = ({ children }) => {
 
     socket.on('wallet_balance_update', (newBalance) => {
       console.log('[Socket] Real-time wallet update:', newBalance);
+      toast.success(`Wallet Balance Updated: ₹${newBalance}`);
       setUser(prev => {
         const updated = { ...prev, walletBalance: newBalance };
         localStorage.setItem('ff_user', JSON.stringify(updated));

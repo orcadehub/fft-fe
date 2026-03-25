@@ -7,6 +7,7 @@ import {
 } from '@heroicons/react/24/solid';
 import { CurrencyRupeeIcon } from '@heroicons/react/24/outline';
 import api from '../services/api';
+import { toast } from 'react-toastify';
 
 import ffHeroBg1 from '../assets/fflogo1.jpg';
 import ffHeroBg2 from '../assets/fflogo2.jpg';
@@ -21,8 +22,13 @@ const AdminDashboard = () => {
     const mode = searchParams.get('mode') || 'classic'; // default to classic
     const [teamSize, setTeamSize] = useState('1v1');
     const [tournaments, setTournaments] = useState([]);
+    const [users, setUsers] = useState([]);
     const [bgIndex, setBgIndex] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('tournaments'); // 'tournaments' or 'users'
+    const [isUserPassModalOpen, setIsUserPassModalOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
+    const [newUserPass, setNewUserPass] = useState('');
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [createMode, setCreateMode] = useState('Classic');
@@ -101,9 +107,27 @@ const AdminDashboard = () => {
         }
     };
 
+    const fetchUsers = async () => {
+        setLoading(true);
+        try {
+            const res = await api.get('/api/moderators/users');
+            setUsers(res.data);
+        } catch (err) {
+            console.error(err);
+            toast.error('Failed to load users. Check admin token.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        if (token) fetchTournaments();
-    }, [mode, teamSize, token]);
+        if (!token) return;
+        if (activeTab === 'tournaments') {
+            fetchTournaments();
+        } else {
+            fetchUsers();
+        }
+    }, [mode, teamSize, token, activeTab]);
 
     const handleDeleteClick = (id) => {
         setDeletingTournamentId(id);
@@ -117,9 +141,10 @@ const AdminDashboard = () => {
             await api.delete(`/api/moderators/tournaments/${deletingTournamentId}`);
             setTournaments(tournaments.filter(t => t._id !== deletingTournamentId));
             setIsDeleteModalOpen(false);
+            toast.success('Tournament deleted and players refunded');
         } catch (err) {
             console.error('Delete failed:', err);
-            alert('Failed to delete tournament');
+            toast.error('Failed to delete tournament');
         }
     };
 
@@ -147,9 +172,25 @@ const AdminDashboard = () => {
             });
             setIsEditModalOpen(false);
             fetchTournaments();
+            toast.success('Room details updated');
         } catch (err) {
             console.error(err);
-            alert('Failed to update room.');
+            toast.error('Failed to update room.');
+        }
+    };
+
+    const handleUserPassSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            await api.put(`/api/moderators/users/${editingUser._id}/password`, {
+                password: newUserPass
+            });
+            setIsUserPassModalOpen(false);
+            setNewUserPass('');
+            toast.success('Password updated successfully');
+        } catch (err) {
+            console.error(err);
+            toast.error('Failed to update password.');
         }
     };
 
@@ -167,9 +208,10 @@ const AdminDashboard = () => {
             await api.post('/api/moderators/tournaments', payload);
             setIsCreateModalOpen(false);
             fetchTournaments();
+            toast.success('Tournament created successfully');
         } catch (err) {
             console.error(err);
-            alert('Failed to create new room.');
+            toast.error('Failed to create new room.');
         }
     };
 
@@ -198,73 +240,136 @@ const AdminDashboard = () => {
                            </span>
                         </div>
                         <h1 className="text-4xl md:text-6xl font-black uppercase text-white tracking-widest border-l-8 border-ff-orange pl-6 drop-shadow-lg leading-none">
-                            {mode === 'clashsquad' ? 'Clash Squad' : 'Classic Mode'}
+                            {activeTab === 'users' ? 'User Base' : (mode === 'clashsquad' ? 'Clash Squad' : 'Classic Mode')}
                         </h1>
                     </div>
 
                     <div className="flex flex-col md:flex-row gap-4 items-center w-full lg:w-auto">
-                        {/* Filters Button Group */}
-                        <div className="bg-black/60 backdrop-blur-xl p-1 rounded-2xl border border-white/10 flex items-center shadow-2xl w-full md:w-auto overflow-x-auto scrollbar-hide">
-                            {teamOptions.map((opt) => (
-                                <button
-                                    key={opt.id}
-                                    onClick={() => setTeamSize(opt.id)}
-                                    className={`flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 md:px-8 py-3.5 rounded-xl font-black uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${
-                                        teamSize === opt.id 
-                                        ? 'bg-gradient-to-r from-ff-orange to-orange-500 text-white shadow-[0_0_20px_rgba(255,107,53,0.4)] z-10' 
-                                        : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
-                                    }`}
-                                >
-                                    <span className={teamSize === opt.id ? 'text-white' : 'text-gray-600'}>{opt.icon}</span>
-                                    <span className="text-sm md:text-base">{opt.label}</span>
-                                </button>
-                            ))}
+                        {/* Tab Switcher */}
+                        <div className="bg-black/40 backdrop-blur-md p-1 rounded-xl border border-white/5 flex items-center">
+                            <button 
+                                onClick={() => setActiveTab('tournaments')}
+                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'tournaments' ? 'bg-ff-orange text-white' : 'text-gray-500'}`}
+                            >Tournaments</button>
+                            <button 
+                                onClick={() => setActiveTab('users')}
+                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'users' ? 'bg-ff-orange text-white' : 'text-gray-500'}`}
+                            >Users</button>
                         </div>
+
+                        {/* Filters Button Group */}
+                        {activeTab === 'tournaments' && (
+                            <div className="bg-black/60 backdrop-blur-xl p-1 rounded-2xl border border-white/10 flex items-center shadow-2xl w-full md:w-auto overflow-x-auto scrollbar-hide">
+                                {teamOptions.map((opt) => (
+                                    <button
+                                        key={opt.id}
+                                        onClick={() => setTeamSize(opt.id)}
+                                        className={`flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 md:px-8 py-3.5 rounded-xl font-black uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${
+                                            teamSize === opt.id 
+                                            ? 'bg-gradient-to-r from-ff-orange to-orange-500 text-white shadow-[0_0_20px_rgba(255,107,53,0.4)] z-10' 
+                                            : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+                                        }`}
+                                    >
+                                        <span className={teamSize === opt.id ? 'text-white' : 'text-gray-600'}>{opt.icon}</span>
+                                        <span className="text-sm md:text-base">{opt.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                         
                         {/* Create Room Button */}
-                        <button 
-                            onClick={() => setIsCreateModalOpen(true)}
-                            className="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-xl font-black uppercase tracking-widest text-sm shadow-[0_0_20px_rgba(239,68,68,0.4)] transition transform hover:-translate-y-1 whitespace-nowrap flex items-center w-full md:w-auto justify-center"
-                        >
-                            <PlusCircleIcon className="h-5 w-5 mr-2" />
-                            Create Room
-                        </button>
+                        {activeTab === 'tournaments' && (
+                            <button 
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-xl font-black uppercase tracking-widest text-sm shadow-[0_0_20px_rgba(239,68,68,0.4)] transition transform hover:-translate-y-1 whitespace-nowrap flex items-center w-full md:w-auto justify-center"
+                            >
+                                <PlusCircleIcon className="h-5 w-5 mr-2" />
+                                Create Room
+                            </button>
+                        )}
                     </div>
                 </div>
 
                 {/* Content Section */}
                 <AnimatePresence mode="wait">
                     <motion.div
-                        key={`${mode}-${teamSize}`}
+                        key={`${activeTab}-${mode}-${teamSize}`}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ duration: 0.3 }}
-                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                        className={activeTab === 'tournaments' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" : "w-full"}
                     >
                         {loading ? (
                             <div className="col-span-full py-20 text-center">
                                 <FireIcon className="h-16 w-16 text-ff-orange mx-auto animate-pulse" />
                                 <p className="text-gray-400 mt-4 font-bold uppercase tracking-widest">Scanning Server Data...</p>
                             </div>
-                        ) : tournaments.length > 0 ? (
-                            tournaments.map((t) => (
-                                <AdminTournamentCard 
-                                   key={t._id} 
-                                   tournament={t} 
-                                   onDelete={() => handleDeleteClick(t._id)}
-                                   onEdit={() => handleEditClick(t)}
-                                />
-                            ))
+                        ) : activeTab === 'tournaments' ? (
+                            tournaments.length > 0 ? (
+                                tournaments.map((t) => (
+                                    <AdminTournamentCard 
+                                       key={t._id} 
+                                       tournament={t} 
+                                       onDelete={() => handleDeleteClick(t._id)}
+                                       onEdit={() => handleEditClick(t)}
+                                    />
+                                ))
+                            ) : (
+                                <div className="col-span-full py-32 bg-gray-800/20 backdrop-blur-sm rounded-3xl border border-white/5 text-center">
+                                    <FireIcon className="h-20 w-20 mx-auto mb-6 opacity-10 text-white" />
+                                    <h3 className="text-2xl font-black text-gray-400 uppercase tracking-widest">
+                                        No {teamSize} Matches Found
+                                    </h3>
+                                    <p className="text-gray-500 mt-2">
+                                        Create a new room or try a different filter.
+                                    </p>
+                                </div>
+                            )
                         ) : (
-                            <div className="col-span-full py-32 bg-gray-800/20 backdrop-blur-sm rounded-3xl border border-white/5 text-center">
-                                <FireIcon className="h-20 w-20 mx-auto mb-6 opacity-10 text-white" />
-                                <h3 className="text-2xl font-black text-gray-400 uppercase tracking-widest">
-                                    No {teamSize} Matches Found
-                                </h3>
-                                <p className="text-gray-500 mt-2">
-                                    Create a new room or try a different filter.
-                                </p>
+                            /* Users Table View */
+                            <div className="bg-gray-900 border border-white/5 rounded-3xl overflow-hidden shadow-2xl">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-gray-800/50 text-gray-400 text-[10px] font-black uppercase tracking-widest border-b border-gray-800">
+                                                <th className="px-6 py-5">Player</th>
+                                                <th className="px-6 py-5">FF UID</th>
+                                                <th className="px-6 py-5 text-center">Wallet</th>
+                                                <th className="px-6 py-5 text-center">Status</th>
+                                                <th className="px-6 py-5 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {users.map((u) => (
+                                                <tr key={u._id} className="border-b border-gray-800 hover:bg-white/5 transition">
+                                                    <td className="px-6 py-4">
+                                                        <span className="text-white font-black uppercase text-sm tracking-tight">{u.inGameName}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 font-mono text-gray-400 text-sm">
+                                                        {u.ffUid}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        <span className="text-ff-success font-black">₹{u.walletBalance}</span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${u.isBanned ? 'bg-red-600/20 text-red-500' : 'bg-ff-success/10 text-ff-success'}`}>
+                                                            {u.isBanned ? 'Banned' : 'Active'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <button 
+                                                            onClick={() => { setEditingUser(u); setIsUserPassModalOpen(true); }}
+                                                            className="text-ff-orange font-black uppercase text-[10px] tracking-widest hover:underline"
+                                                        >
+                                                            Reset Password
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         )}
                     </motion.div>
@@ -565,6 +670,58 @@ const AdminDashboard = () => {
                                     }`}
                                 >Confirm</button>
                             </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* USER PASSWORD CHANGE MODAL */}
+            <AnimatePresence>
+                {isUserPassModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsUserPassModalOpen(false)}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                        ></motion.div>
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                            className="bg-gray-900 border border-ff-orange/30 rounded-3xl p-8 relative z-10 w-full max-w-sm shadow-2xl"
+                        >
+                            <h2 className="text-xl font-black text-white uppercase tracking-widest mb-6 border-b border-gray-800 pb-4">
+                                Reset Player Password
+                            </h2>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-4">
+                                User: <span className="text-white">{editingUser?.inGameName}</span> ({editingUser?.ffUid})
+                            </p>
+                            <form onSubmit={handleUserPassSubmit} className="space-y-6">
+                                <div>
+                                    <label className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-2 block">New Password</label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        value={newUserPass}
+                                        onChange={(e) => setNewUserPass(e.target.value)}
+                                        className="w-full bg-black/40 border border-gray-700 rounded-xl py-4 px-4 text-white font-black focus:outline-none focus:border-ff-orange transition"
+                                        placeholder="Enter new password"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setIsUserPassModalOpen(false)}
+                                        className="py-4 bg-gray-800 hover:bg-gray-700 text-white font-black rounded-xl uppercase tracking-widest text-[10px] transition"
+                                    >Cancel</button>
+                                    <button 
+                                        type="submit" 
+                                        className="py-4 bg-ff-orange hover:bg-orange-600 text-white shadow-[0_0_15px_rgba(255,107,53,0.4)] font-black rounded-xl uppercase tracking-widest text-[10px] transition"
+                                    >Update</button>
+                                </div>
+                            </form>
                         </motion.div>
                     </div>
                 )}
