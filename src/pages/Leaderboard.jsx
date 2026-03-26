@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { TrophyIcon, StarIcon, FireIcon } from '@heroicons/react/24/solid';
+import { TrophyIcon, StarIcon, FireIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/solid';
+
+const PLAYERS_PER_PAGE = 10;
 
 const Leaderboard = () => {
     const [players, setPlayers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
@@ -20,6 +23,32 @@ const Leaderboard = () => {
         fetchLeaderboard();
     }, []);
 
+    const totalPages = Math.ceil(players.length / PLAYERS_PER_PAGE);
+    const startIndex = (currentPage - 1) * PLAYERS_PER_PAGE;
+    const paginatedPlayers = players.slice(startIndex, startIndex + PLAYERS_PER_PAGE);
+
+    const goToPage = (page) => {
+        if (page >= 1 && page <= totalPages) {
+            setCurrentPage(page);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    // Generate page numbers to show
+    const getPageNumbers = () => {
+        const pages = [];
+        const maxVisible = 5;
+        let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let end = Math.min(totalPages, start + maxVisible - 1);
+        if (end - start + 1 < maxVisible) {
+            start = Math.max(1, end - maxVisible + 1);
+        }
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+        return pages;
+    };
+
     return (
         <div className="max-w-7xl mx-auto px-4 py-12 relative min-h-screen">
             <div className="absolute top-0 right-0 w-96 h-96 bg-ff-orange/5 blur-[120px] rounded-full -z-10"></div>
@@ -33,7 +62,7 @@ const Leaderboard = () => {
                 <h1 className="text-5xl md:text-7xl font-black uppercase text-white tracking-widest leading-none drop-shadow-2xl">
                     Global <span className="text-transparent bg-clip-text bg-gradient-to-r from-ff-orange to-orange-500">Legends</span>
                 </h1>
-                <p className="text-gray-500 mt-6 font-bold uppercase tracking-widest text-sm">Top 100 Players by Battle Earnings</p>
+                <p className="text-gray-500 mt-6 font-bold uppercase tracking-widest text-sm">Top Players by Battle Earnings</p>
             </div>
 
             {loading ? (
@@ -44,71 +73,137 @@ const Leaderboard = () => {
                     </div>
                 </div>
             ) : players.length > 0 ? (
-                <div className="bg-gray-800/20 backdrop-blur-xl rounded-[2.5rem] border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
-                    <div className="overflow-x-auto overflow-y-hidden">
-                        <table className="w-full text-left border-collapse min-w-[640px]">
-                            <thead>
-                                <tr className="bg-gray-900/50 text-gray-400 text-xs font-black uppercase tracking-widest border-b border-gray-700/50">
-                                    <th className="px-8 py-6 text-center w-24">Rank</th>
-                                    <th className="px-8 py-6">Warrior Name</th>
-                                    <th className="px-8 py-6 text-center">Earnings</th>
-                                    <th className="px-8 py-6 text-center">K/D Rate</th>
-                                    <th className="px-8 py-6 text-center">Arena Wins</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {players.map((p, index) => (
-                                    <tr 
-                                        key={index} 
-                                        className={`group transition-all duration-300 border-b border-gray-800/30 hover:bg-white/5 ${index < 3 ? 'bg-ff-orange/5' : ''}`}
-                                    >
-                                        <td className="px-8 py-6 text-center">
-                                            {index === 0 ? (
-                                                <div className="w-10 h-10 bg-yellow-400 rounded-lg mx-auto flex items-center justify-center shadow-[0_0_20px_rgba(250,204,21,0.4)] rotate-3 group-hover:rotate-0 transition-transform">
-                                                    <StarIcon className="h-6 w-6 text-gray-900" />
-                                                </div>
-                                            ) : index === 1 ? (
-                                                <div className="w-9 h-9 bg-gray-300 rounded-lg mx-auto flex items-center justify-center shadow-[0_0_15px_rgba(209,213,219,0.3)] rotate-3 group-hover:rotate-0 transition-transform">
-                                                    <StarIcon className="h-5 w-5 text-gray-900" />
-                                                </div>
-                                            ) : index === 2 ? (
-                                                <div className="w-8 h-8 bg-orange-400/80 rounded-lg mx-auto flex items-center justify-center shadow-[0_0_15px_rgba(251,146,60,0.3)] rotate-3 group-hover:rotate-0 transition-transform">
-                                                    <StarIcon className="h-4 w-4 text-gray-900" />
-                                                </div>
-                                            ) : (
-                                                <span className="text-gray-500 font-mono font-bold text-lg">#{index + 1}</span>
-                                            )}
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="flex flex-col">
-                                                <span className="text-white font-black text-lg tracking-wide uppercase group-hover:text-ff-orange transition-colors">
-                                                    {p.inGameName}
-                                                </span>
-                                                <span className="text-[10px] text-gray-500 font-mono tracking-widest">{p.ffUid}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6 text-center">
-                                            <span className="text-2xl font-black text-ff-success filter drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                                                ₹{p.totalWinnings.toLocaleString()}
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-6 text-center">
-                                            <div className="bg-gray-900/50 rounded-lg px-4 py-1.5 inline-block border border-gray-700/50">
-                                                <span className="text-white font-black text-sm">{p.stats?.kdRatio || '0.00'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6 text-center">
-                                            <div className="flex flex-col items-center">
-                                                <span className="text-white font-black text-lg">{p.stats?.wins || 0}</span>
-                                                <span className="text-[8px] text-gray-600 uppercase font-black tracking-widest">Booyahs</span>
-                                            </div>
-                                        </td>
+                <>
+                    <div className="bg-gray-800/20 backdrop-blur-xl rounded-[2.5rem] border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden">
+                        <div className="overflow-x-auto overflow-y-hidden">
+                            <table className="w-full text-left border-collapse min-w-[640px]">
+                                <thead>
+                                    <tr className="bg-gray-900/50 text-gray-400 text-xs font-black uppercase tracking-widest border-b border-gray-700/50">
+                                        <th className="px-8 py-6 text-center w-24">Rank</th>
+                                        <th className="px-8 py-6">Warrior Name</th>
+                                        <th className="px-8 py-6 text-center">Earnings</th>
+                                        <th className="px-8 py-6 text-center">K/D Rate</th>
+                                        <th className="px-8 py-6 text-center">Arena Wins</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    {paginatedPlayers.map((p, index) => {
+                                        const globalRank = startIndex + index;
+                                        return (
+                                            <tr 
+                                                key={globalRank} 
+                                                className={`group transition-all duration-300 border-b border-gray-800/30 hover:bg-white/5 ${globalRank < 3 ? 'bg-ff-orange/5' : ''}`}
+                                            >
+                                                <td className="px-8 py-6 text-center">
+                                                    {globalRank === 0 ? (
+                                                        <div className="w-10 h-10 bg-yellow-400 rounded-lg mx-auto flex items-center justify-center shadow-[0_0_20px_rgba(250,204,21,0.4)] rotate-3 group-hover:rotate-0 transition-transform">
+                                                            <StarIcon className="h-6 w-6 text-gray-900" />
+                                                        </div>
+                                                    ) : globalRank === 1 ? (
+                                                        <div className="w-9 h-9 bg-gray-300 rounded-lg mx-auto flex items-center justify-center shadow-[0_0_15px_rgba(209,213,219,0.3)] rotate-3 group-hover:rotate-0 transition-transform">
+                                                            <StarIcon className="h-5 w-5 text-gray-900" />
+                                                        </div>
+                                                    ) : globalRank === 2 ? (
+                                                        <div className="w-8 h-8 bg-orange-400/80 rounded-lg mx-auto flex items-center justify-center shadow-[0_0_15px_rgba(251,146,60,0.3)] rotate-3 group-hover:rotate-0 transition-transform">
+                                                            <StarIcon className="h-4 w-4 text-gray-900" />
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-gray-500 font-mono font-bold text-lg">#{globalRank + 1}</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-white font-black text-lg tracking-wide uppercase group-hover:text-ff-orange transition-colors">
+                                                            {p.inGameName}
+                                                        </span>
+                                                        <span className="text-[10px] text-gray-500 font-mono tracking-widest">{p.ffUid}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6 text-center">
+                                                    <span className="text-2xl font-black text-ff-success filter drop-shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                                                        ₹{p.totalWinnings.toLocaleString()}
+                                                    </span>
+                                                </td>
+                                                <td className="px-8 py-6 text-center">
+                                                    <div className="bg-gray-900/50 rounded-lg px-4 py-1.5 inline-block border border-gray-700/50">
+                                                        <span className="text-white font-black text-sm">{p.stats?.kdRatio || '0.00'}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6 text-center">
+                                                    <div className="flex flex-col items-center">
+                                                        <span className="text-white font-black text-lg">{p.stats?.wins || 0}</span>
+                                                        <span className="text-[8px] text-gray-600 uppercase font-black tracking-widest">Booyahs</span>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="flex items-center justify-center mt-8 space-x-2">
+                            <button 
+                                onClick={() => goToPage(currentPage - 1)} 
+                                disabled={currentPage === 1}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${currentPage === 1 ? 'bg-gray-800/30 text-gray-600 cursor-not-allowed' : 'bg-gray-800/60 text-gray-300 hover:bg-ff-orange hover:text-white hover:shadow-[0_0_15px_rgba(255,107,53,0.3)]'}`}
+                            >
+                                <ChevronLeftIcon className="h-5 w-5" />
+                            </button>
+
+                            {getPageNumbers()[0] > 1 && (
+                                <>
+                                    <button 
+                                        onClick={() => goToPage(1)} 
+                                        className="w-10 h-10 rounded-xl bg-gray-800/60 text-gray-300 hover:bg-ff-orange hover:text-white transition-all font-black text-sm"
+                                    >1</button>
+                                    {getPageNumbers()[0] > 2 && (
+                                        <span className="text-gray-600 font-black px-1">...</span>
+                                    )}
+                                </>
+                            )}
+
+                            {getPageNumbers().map((page) => (
+                                <button 
+                                    key={page} 
+                                    onClick={() => goToPage(page)}
+                                    className={`w-10 h-10 rounded-xl font-black text-sm transition-all ${
+                                        currentPage === page 
+                                        ? 'bg-ff-orange text-white shadow-[0_0_20px_rgba(255,107,53,0.4)]' 
+                                        : 'bg-gray-800/60 text-gray-300 hover:bg-gray-700 hover:text-white'
+                                    }`}
+                                >{page}</button>
+                            ))}
+
+                            {getPageNumbers()[getPageNumbers().length - 1] < totalPages && (
+                                <>
+                                    {getPageNumbers()[getPageNumbers().length - 1] < totalPages - 1 && (
+                                        <span className="text-gray-600 font-black px-1">...</span>
+                                    )}
+                                    <button 
+                                        onClick={() => goToPage(totalPages)} 
+                                        className="w-10 h-10 rounded-xl bg-gray-800/60 text-gray-300 hover:bg-ff-orange hover:text-white transition-all font-black text-sm"
+                                    >{totalPages}</button>
+                                </>
+                            )}
+
+                            <button 
+                                onClick={() => goToPage(currentPage + 1)} 
+                                disabled={currentPage === totalPages}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${currentPage === totalPages ? 'bg-gray-800/30 text-gray-600 cursor-not-allowed' : 'bg-gray-800/60 text-gray-300 hover:bg-ff-orange hover:text-white hover:shadow-[0_0_15px_rgba(255,107,53,0.3)]'}`}
+                            >
+                                <ChevronRightIcon className="h-5 w-5" />
+                            </button>
+
+                            <span className="text-gray-500 text-xs font-bold uppercase tracking-widest ml-4">
+                                {startIndex + 1}-{Math.min(startIndex + PLAYERS_PER_PAGE, players.length)} of {players.length}
+                            </span>
+                        </div>
+                    )}
+                </>
             ) : (
                 <div className="text-center py-40 opacity-30">
                     <TrophyIcon className="h-32 w-32 mx-auto mb-6 grayscale" />
