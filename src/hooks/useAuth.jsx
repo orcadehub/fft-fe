@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-import { io } from 'socket.io-client';
+import socket from '../services/socket';
 import api, { API_BASE_URL } from '../services/api';
 import { toast } from 'react-toastify';
 
@@ -55,11 +55,10 @@ export const AuthProvider = ({ children }) => {
     if (!user?._id) return;
     
     console.log(`[Socket] Connecting to ${API_BASE_URL} for User: ${user._id}`);
-    const socket = io(API_BASE_URL);
     
     socket.emit('join_user', user._id);
-
-    socket.on('wallet_balance_update', (newBalance) => {
+    
+    const handleWalletUpdate = (newBalance) => {
       console.log('[Socket] Real-time wallet update:', newBalance);
       toast.success(`Wallet Balance Updated: ₹${newBalance}`);
       setUser(prev => {
@@ -67,14 +66,12 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('ff_user', JSON.stringify(updated));
         return updated;
       });
-    });
+    };
 
-    socket.on('connect_error', (err) => {
-      console.error('[Socket Error]', err.message);
-    });
+    socket.on('wallet_balance_update', handleWalletUpdate);
 
     return () => {
-      socket.disconnect();
+      socket.off('wallet_balance_update', handleWalletUpdate);
     };
   }, [user?._id]);
 

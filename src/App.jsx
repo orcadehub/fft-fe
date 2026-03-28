@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import CreateTournament from './pages/CreateTournament';
@@ -9,6 +10,10 @@ import Wallet from './pages/Wallet';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import Leaderboard from './pages/Leaderboard';
+import SupportCenter from './pages/SupportCenter';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsConditions from './pages/TermsConditions';
+import AboutUs from './pages/AboutUs';
 import { AuthProvider } from './hooks/useAuth';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -29,10 +34,15 @@ function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/wallet" element={<Wallet />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/support" element={<SupportCenter />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsConditions />} />
+              <Route path="/about" element={<AboutUs />} />
               <Route path="/moderators/agt/login" element={<AdminLogin />} />
               <Route path="/moderators/agt/dashboard" element={<AdminDashboard />} />
             </Routes>
           </main>
+          <Footer />
         </div>
       </AuthProvider>
     </Router>
@@ -40,3 +50,4 @@ function App() {
 }
 
 export default App;
+

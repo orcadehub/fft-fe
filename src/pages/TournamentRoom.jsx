@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { io } from 'socket.io-client';
+import socket from '../services/socket';
 import { useAuth } from '../hooks/useAuth';
 import api, { API_BASE_URL } from '../services/api';
 import { UsersIcon, TrophyIcon, ShieldCheckIcon, FireIcon } from '@heroicons/react/24/solid';
@@ -35,18 +35,23 @@ const TournamentRoom = () => {
     };
     fetchTournament();
 
-    const socket = io(API_BASE_URL);
     socket.emit('join_tournament', id);
     
-    socket.on('player_joined', (players) => {
+    const handlePlayerJoined = (players) => {
       setTournament(prev => prev ? { ...prev, players } : null);
-    });
+    };
 
-    socket.on('leaderboard_update', (data) => {
+    const handleLeaderboardUpdate = (data) => {
       fetchTournament();
-    });
+    };
 
-    return () => socket.disconnect();
+    socket.on('player_joined', handlePlayerJoined);
+    socket.on('leaderboard_update', handleLeaderboardUpdate);
+
+    return () => {
+      socket.off('player_joined', handlePlayerJoined);
+      socket.off('leaderboard_update', handleLeaderboardUpdate);
+    };
   }, [id]);
 
   const handleJoin = async () => {

@@ -8,6 +8,8 @@ import {
 import { CurrencyRupeeIcon } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import { toast } from 'react-toastify';
+import AdminSupport from '../components/AdminSupport';
+import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
 
 import ffHeroBg1 from '../assets/fflogo1.jpg';
 import ffHeroBg2 from '../assets/fflogo2.jpg';
@@ -25,7 +27,7 @@ const AdminDashboard = () => {
     const [users, setUsers] = useState([]);
     const [bgIndex, setBgIndex] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('tournaments'); // 'tournaments' or 'users'
+    const [activeTab, setActiveTab] = useState('tournaments'); // 'tournaments', 'users', 'support'
     const [isUserPassModalOpen, setIsUserPassModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [newUserPass, setNewUserPass] = useState('');
@@ -124,7 +126,7 @@ const AdminDashboard = () => {
         if (!token) return;
         if (activeTab === 'tournaments') {
             fetchTournaments();
-        } else {
+        } else if (activeTab === 'users') {
             fetchUsers();
         }
     }, [mode, teamSize, token, activeTab]);
@@ -240,7 +242,7 @@ const AdminDashboard = () => {
                            </span>
                         </div>
                         <h1 className="text-4xl md:text-6xl font-black uppercase text-white tracking-widest border-l-8 border-ff-orange pl-6 drop-shadow-lg leading-none">
-                            {activeTab === 'users' ? 'User Base' : (mode === 'clashsquad' ? 'Clash Squad' : 'Classic Mode')}
+                            {activeTab === 'users' ? 'User Base' : (activeTab === 'support' ? 'Support' : (mode === 'clashsquad' ? 'Clash Squad' : 'Classic Mode'))}
                         </h1>
                     </div>
 
@@ -255,6 +257,10 @@ const AdminDashboard = () => {
                                 onClick={() => setActiveTab('users')}
                                 className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'users' ? 'bg-ff-orange text-white' : 'text-gray-500'}`}
                             >Users</button>
+                            <button 
+                                onClick={() => setActiveTab('support')}
+                                className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'support' ? 'bg-ff-orange text-white' : 'text-gray-500'}`}
+                            >Support</button>
                         </div>
 
                         {/* Filters Button Group */}
@@ -300,7 +306,11 @@ const AdminDashboard = () => {
                         transition={{ duration: 0.3 }}
                         className={activeTab === 'tournaments' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" : "w-full"}
                     >
-                        {loading ? (
+                        {activeTab === 'support' ? (
+                          <div className="col-span-full">
+                            <AdminSupport />
+                          </div>
+                        ) : loading ? (
                             <div className="col-span-full py-20 text-center">
                                 <FireIcon className="h-16 w-16 text-ff-orange mx-auto animate-pulse" />
                                 <p className="text-gray-400 mt-4 font-bold uppercase tracking-widest">Scanning Server Data...</p>

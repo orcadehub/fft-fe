@@ -13,7 +13,7 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   // Use adminToken for moderator routes, ff_token for everything else
   let token;
-  if (config.url && config.url.includes('/moderators')) {
+  if (config.url && (config.url.includes('/moderators') || config.url.includes('/support/admin'))) {
     token = localStorage.getItem('adminToken');
   } else {
     token = localStorage.getItem('ff_token');
