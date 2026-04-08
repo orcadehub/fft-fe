@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
-import { CheckBadgeIcon, ShieldCheckIcon, KeyIcon, IdentificationIcon, MagnifyingGlassIcon, ChartBarIcon } from '@heroicons/react/24/solid';
+import { CheckBadgeIcon, ShieldCheckIcon, KeyIcon, IdentificationIcon, MagnifyingGlassIcon, ChartBarIcon, XMarkIcon, UserCircleIcon } from '@heroicons/react/24/solid';
 import WalletModal from '../components/WalletModal';
 import { toast } from 'react-toastify';
 
@@ -12,20 +12,35 @@ import ffHeroBg3 from '../assets/fflogo3.jpg';
 
 const backgrounds = [ffHeroBg3, ffHeroBg1, ffHeroBg2];
 
+import { GoogleLogin } from '@react-oauth/google';
+
+const skillNames = {
+    // Active Skills
+    606: "Drop the Beat (Alok)",
+    7606: "Time Turner (Chrono)",
+    4306: "Master of All (K)",
+    6201: "Riptide Rhythm (Skyler)",
+    1101: "Senses Shock (Homer)",
+    306: "Xtreme Encounter (Xayne)",
+    
+    // Passive Skills
+    7106: "Sustained Raids (Jota)",
+    1305: "Maniac (D-Bee)",
+    2104: "Limelight (Wolfrahh)",
+    906: "Bushido (Hayato)",
+    1006: "Gluttony (Maxim)",
+    1206: "Agility (Kelly)",
+    
+    // Default fallback list grows as more are discovered
+};
+
+const getSkillName = (id) => skillNames[id] || `Tactical Skill ${id}`;
+
 const Profile = () => {
-  const { user, login, register, updateUserWallet } = useAuth();
+  const { user, googleLogin } = useAuth();
   const navigate = useNavigate();
-  const [ffUid, setFfUid] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [bgIndex, setBgIndex] = useState(0);
-  const [isLoginMode, setIsLoginMode] = useState(true);
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-  
-  // UID Verification States
-  const [isUidVerified, setIsUidVerified] = useState(false);
-  const [verifyingUid, setVerifyingUid] = useState(false);
-  const [detectedPlayer, setDetectedPlayer] = useState({ name: '', level: 0 });
 
   useEffect(() => {
     if (user) return;
@@ -35,60 +50,53 @@ const Profile = () => {
     return () => clearInterval(timer);
   }, [user]);
 
-  // Handle UID Verification (Real FF API fetch via Backend)
-  const handleVerifyUid = async () => {
-    if (!ffUid) return toast.warn('Please enter a UID to verify.');
-
-    setVerifyingUid(true);
+  const handleGoogleSuccess = async (response) => {
+    setLoading(true);
+    const result = await googleLogin(response.credential);
+    setLoading(false);
     
-    try {
-      const res = await api.get(`/api/auth/verify/${ffUid}`);
-      
-      if (res.data.success) {
-        setDetectedPlayer({ 
-          name: res.data.name, 
-          level: res.data.level 
-        });
-        setIsUidVerified(true);
-        toast.success(`UID Verified: ${res.data.name}`);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.error || 'Could not verify UID. Make sure it is correct.');
-      setIsUidVerified(false);
-    } finally {
-      setVerifyingUid(false);
+    if (result.success) {
+      toast.success('Signed in successfully!');
+      // After login, stay on profile to complete FF UID if needed
+    } else {
+      toast.error(result.error || 'Google sign-in failed');
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const [newFfUid, setNewFfUid] = useState('');
+  const [isUpdatingUid, setIsUpdatingUid] = useState(false);
 
-
-    let result;
-    if (isLoginMode) {
-      result = await login(ffUid, password);
-    } else {
-      if (!isUidVerified) {
-        toast.warn('Please verify your UID first.');
-        setLoading(false);
-        return;
+  const handleUpdateUid = async () => {
+    if (!newFfUid) return toast.warn('Enter your Free Fire UID');
+    setIsUpdatingUid(true);
+    try {
+      const res = await api.post('/api/ff/auth/update-uid', { ffUid: newFfUid });
+      if (res.data.success) {
+         toast.success('Free Fire UID Linked!');
+         window.location.reload(); // Refresh to update user info in AuthContext
       }
-      // Auto-pass fetched details to registration
-      result = await register(ffUid, password, detectedPlayer.name, detectedPlayer.level);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Link failed');
+    } finally {
+      setIsUpdatingUid(false);
     }
+  };
 
-    setLoading(false);
-    if (!result.success) {
-      toast.error(result.error || 'Authentication failed');
-    } else {
-      toast.success(isLoginMode ? 'Welcome back!' : 'Account created successfully!');
-      navigate('/dashboard');
+  const handleDisconnect = async () => {
+    if (!window.confirm('Do you want to disconnect your Free Fire account? This will hide your game stats.')) return;
+    try {
+      const res = await api.post('/api/ff/auth/disconnect');
+      if (res.data.success) {
+        toast.info('Account disconnected');
+        window.location.reload();
+      }
+    } catch (err) {
+      toast.error('Failed to disconnect');
     }
   };
 
   if (!user) {
+
     return (
       <div className="relative w-full min-h-screen flex items-center justify-center pt-16">
         {/* Dynamic Background */}
@@ -99,120 +107,49 @@ const Profile = () => {
         <div className="absolute inset-0 bg-gradient-to-b from-gray-900/90 via-gray-900/70 to-gray-900/95 z-0"></div>
 
         <div className="relative z-10 w-full max-w-md px-4 py-8 mt-10 md:mt-0">
-          <div className="bg-gray-900/50 backdrop-blur-md rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(255,107,53,0.15)] p-8 overflow-hidden relative">
+          <div className="bg-gray-900/50 backdrop-blur-md rounded-3xl border border-white/10 shadow-[0_0_50px_rgba(255,107,53,0.15)] p-10 overflow-hidden relative text-center">
             
-            <div className="text-center mb-6 relative z-10">
-              <h1 className="text-4xl font-black uppercase text-white tracking-tight">
-                {isLoginMode ? 'Sign In' : 'Create Account'}
+            <div className="mb-10">
+              <div className="w-20 h-20 bg-ff-orange rounded-2xl flex items-center justify-center mx-auto mb-6 rotate-3 shadow-[0_0_30px_rgba(255,107,53,0.4)]">
+                <span className="text-white font-black text-4xl italic">FF</span>
+              </div>
+              <h1 className="text-4xl font-black uppercase text-white tracking-tight leading-none">
+                Gamer Portal
               </h1>
-              <p className="text-gray-300 mt-2 font-medium">
-                {isLoginMode ? 'Welcome back, Player' : 'Register your UID to start'}
+              <p className="text-gray-400 mt-4 font-bold uppercase tracking-widest text-[10px]">
+                Sign in to join the ultimate arena
               </p>
             </div>
 
-            {/* Toggle Modes */}
-            <div className="flex bg-black/40 p-1 rounded-xl mb-8 relative z-10 border border-white/5">
-                <button 
-                    onClick={() => { setIsLoginMode(true); setIsUidVerified(false); }}
-                    className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${isLoginMode ? 'bg-ff-orange text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                >
-                    Login
-                </button>
-                <button 
-                    onClick={() => { setIsLoginMode(false); setIsUidVerified(false); }}
-                    className={`flex-1 py-2.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${!isLoginMode ? 'bg-ff-orange text-white shadow-lg' : 'text-gray-500 hover:text-gray-300'}`}
-                >
-                    Signup
-                </button>
+            <div className="flex flex-col items-center justify-center space-y-6">
+                <div className="w-full flex justify-center transform scale-110">
+                    <GoogleLogin 
+                        onSuccess={handleGoogleSuccess}
+                        onError={() => toast.error('Google login failed')}
+                        theme="filled_blue"
+                        shape="pill"
+                        size="large"
+                        text="continue_with"
+                    />
+                </div>
+                
+                {loading && (
+                    <div className="flex items-center space-x-2 text-ff-orange animate-pulse">
+                        <div className="w-2 h-2 bg-ff-orange rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-ff-orange rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-2 h-2 bg-ff-orange rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <span className="text-[10px] font-black uppercase tracking-widest ml-2">Authenticating...</span>
+                    </div>
+                )}
             </div>
-            
-            <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
-              
-              <div className="animate-fade-in space-y-6">
-                  {/* UID Field with Auto-Verification */}
-                  <div className="group">
-                    <label className="block text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 ml-1">Free Fire UID</label>
-                    <div className="flex space-x-2">
-                        <div className="relative flex-grow">
-                        <IdentificationIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 group-focus-within:text-ff-orange transition" />
-                        <input type="text"
-                            className={`w-full bg-black/40 border border-gray-700/50 rounded-xl py-3.5 pl-12 pr-4 focus:outline-none focus:border-ff-orange transition text-white font-mono text-lg ${isUidVerified && !isLoginMode ? 'border-ff-success/50 bg-green-500/5' : ''}`}
-                            value={ffUid}
-                            onChange={(e) => { setFfUid(e.target.value); setIsUidVerified(false); }}
-                            placeholder="192837465"
-                            required
-                        />
-                        </div>
-                        {!isLoginMode && !isUidVerified && (
-                             <button 
-                                type="button" 
-                                onClick={handleVerifyUid}
-                                disabled={verifyingUid || !ffUid}
-                                className="bg-ff-dark-blue hover:bg-gray-800 text-ff-orange border border-ff-orange/30 px-6 rounded-xl font-black uppercase text-[10px] tracking-widest transition active:scale-95 disabled:opacity-50"
-                             >
-                                {verifyingUid ? 'Fetching...' : 'Verify'}
-                             </button>
-                        )}
-                        {isUidVerified && !isLoginMode && (
-                            <div className="flex items-center px-4 bg-green-500/10 border border-ff-success/30 rounded-xl text-ff-success">
-                                <CheckBadgeIcon className="h-5 w-5" />
-                            </div>
-                        )}
-                    </div>
-                  </div>
 
-                  {/* Auto-Fetched Player Stats (Visible only during Signup after verification) */}
-                  {!isLoginMode && isUidVerified && (
-                      <div className="bg-black/80 border border-white/5 p-4 rounded-2xl animate-fade-in flex items-center justify-between shadow-2xl relative overflow-hidden group">
-                          <div className="absolute right-0 top-0 h-full w-24 bg-ff-success opacity-5 blur-3xl rounded-full"></div>
-                          <div className="flex space-x-4 items-center z-10">
-                              <div className="bg-white/5 p-3 rounded-xl border border-white/5">
-                                  <ChartBarIcon className="h-6 w-6 text-ff-success" />
-                              </div>
-                              <div>
-                                  <p className="text-[9px] font-black text-ff-success uppercase tracking-[0.1em] mb-1">Authenticated Player</p>
-                                  <div className="flex items-center space-x-3">
-                                      <span className="text-xl font-black text-white tracking-tighter italic">{detectedPlayer.name}</span>
-                                      <span className="bg-ff-orange/20 text-ff-orange px-2 py-0.5 rounded text-[10px] font-black border border-ff-orange/30">LVL {detectedPlayer.level}</span>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                  )}
+            <div className="mt-12 pt-8 border-t border-white/5">
+                <p className="text-[9px] text-gray-500 font-bold uppercase tracking-[0.2em] leading-relaxed">
+                    By continuing, you agree to our <br/> 
+                    <a href="/terms" className="text-ff-orange hover:underline">Terms of Service</a> & <a href="/privacy" className="text-ff-orange hover:underline">Privacy Policy</a>
+                </p>
+            </div>
 
-                  <div className="group">
-                    <label className={`block text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 ml-1 transition ${(!isLoginMode && !isUidVerified) ? 'text-gray-700' : 'text-gray-400'}`}>Secure Password</label>
-                    <div className="relative">
-                      <KeyIcon className={`absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 transition ${(!isLoginMode && !isUidVerified) ? 'text-gray-800' : 'text-gray-500 group-focus-within:text-ff-orange'}`} />
-                      <input type="password"
-                        className={`w-full bg-black/40 border border-gray-700/50 rounded-xl py-4 pl-12 pr-4 focus:outline-none focus:border-ff-orange transition text-white font-mono text-lg shadow-inner disabled:opacity-30 disabled:cursor-not-allowed`}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        required
-                        disabled={!isLoginMode && !isUidVerified}
-                      />
-                    </div>
-                  </div>
-                  
-                  {!isLoginMode && isUidVerified && (
-                      <div className="bg-ff-orange/5 border border-ff-orange/20 p-4 rounded-xl flex items-start space-x-3">
-                        <ShieldCheckIcon className="h-5 w-5 text-ff-orange shrink-0 mt-0.5" />
-                        <p className="text-[10px] text-gray-400 font-bold leading-relaxed uppercase tracking-widest">
-                            Ready to register. All verified player details will be saved to your profile instantly.
-                        </p>
-                      </div>
-                  )}
-
-                  <button 
-                    type="submit" 
-                    className={`w-full bg-ff-orange text-white py-4.5 rounded-xl font-black uppercase tracking-[0.2em] text-sm shadow-[0_4px_15px_rgba(255,107,53,0.3)] hover:opacity-90 active:scale-95 transition-all disabled:bg-gray-800 disabled:text-gray-600 disabled:shadow-none disabled:cursor-not-allowed uppercase`}
-                    disabled={loading || (!isLoginMode && !isUidVerified)}
-                  >
-                    {loading ? 'Finalizing...' : (isLoginMode ? 'Login To Arena' : 'Finish Registration')}
-                  </button>
-              </div>
-            </form>
           </div>
         </div>
       </div>
@@ -220,182 +157,243 @@ const Profile = () => {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-24 relative z-10">
-      <div className="bg-gray-900 border border-white/5 rounded-3xl overflow-hidden shadow-2xl relative">
-        {/* Profile Header */}
-        <div className="h-64 bg-gray-800 border-b border-white/5 relative flex flex-col items-center justify-center overflow-hidden">
-            {/* Background Decor */}
-            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-ff-orange via-transparent to-transparent"></div>
-            
-            <div className="relative z-10 text-center">
-                <div className="inline-block px-4 py-1.5 bg-ff-orange/20 border border-ff-orange/30 rounded-full text-[10px] font-black text-ff-orange uppercase tracking-[0.2em] mb-4">
-                    Verified Elite Player
+    <div className="max-w-6xl mx-auto px-4 py-24 relative z-10">
+      <div className="space-y-8">
+        
+        {/* Dynamic Header - Stats Cards Block */}
+        {user.ffUid ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
+            {/* Game Name Card */}
+            <div className="bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition">
+                    <UserCircleIcon className="h-20 w-20 text-white" />
                 </div>
-                <h1 className="text-5xl md:text-7xl font-black uppercase italic tracking-tighter text-white drop-shadow-2xl mb-2">
-                    {user.inGameName}
-                </h1>
-                
-                {user.isBanned && (
-                    <div className="bg-red-600/90 backdrop-blur-md border border-red-400 text-white px-6 py-2 rounded-xl text-xs font-black uppercase tracking-[0.2em] mb-4 shadow-[0_0_20px_rgba(220,38,38,0.5)] animate-pulse">
-                        Account Banned by Free Fire
-                    </div>
-                )}
-
-                <div className="flex items-center justify-center space-x-4">
-                    <p className="text-ff-orange font-mono font-black text-sm px-3 py-1 bg-black/40 rounded-lg border border-white/5">UID: {user.ffUid}</p>
-                    <p className="text-white font-black text-sm px-3 py-1 bg-ff-orange/80 rounded-lg shadow-lg">LVL {user.level || '?'}</p>
+                <p className="text-[10px] font-black text-ff-orange uppercase tracking-[0.2em] mb-3">Professional Nickname</p>
+                <h2 className="text-2xl font-black text-white italic truncate tracking-tighter">{user.inGameName}</h2>
+                <div className="mt-4 flex items-center justify-between">
+                    <span className="text-[10px] text-gray-500 font-bold uppercase">{user.ffData?.basicInfo?.region || 'IND'} Region</span>
+                    {user.isBanned && <span className="text-red-500 text-[10px] font-black animate-pulse uppercase">Banned</span>}
                 </div>
             </div>
-        </div>
 
-        {/* Stats Grid */}
-        <div className="p-8 md:p-12 space-y-12">
-            <div>
-                 <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.3em] mb-8 border-l-4 border-ff-orange pl-4 ml-2">Financial Snapshot</h2>
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="bg-black/30 p-8 rounded-2xl border-b-4 border-green-500 text-center flex flex-col justify-between group hover:bg-black/40 transition">
-                        <div>
-                            <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-2">Available Balance</p>
-                            <p className="text-4xl font-black text-white italic group-hover:scale-105 transition">₹{user.walletBalance}</p>
-                        </div>
-                        <button 
+            {/* Level Card */}
+            <div className="bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+                <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] mb-3">Player Level</p>
+                <div className="flex items-baseline space-x-2">
+                    <span className="text-5xl font-black text-white italic">{user.level || 0}</span>
+                    <span className="text-blue-500/50 font-black text-sm uppercase">EXP {user.ffData?.basicInfo?.exp || '0'}</span>
+                </div>
+                <div className="mt-4 h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${(user.level / 100) * 100}%` }}></div>
+                </div>
+            </div>
+
+            {/* Likes Card */}
+            <div className="bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+                <p className="text-[10px] font-black text-ff-success uppercase tracking-[0.2em] mb-3">Popularity Status</p>
+                <div className="flex items-center space-x-3">
+                    <span className="text-5xl font-black text-white italic">{user.ffData?.basicInfo?.liked || 0}</span>
+                    <div className="bg-ff-success/10 p-2 rounded-lg border border-ff-success/20">
+                        <CheckBadgeIcon className="h-5 w-5 text-ff-success" />
+                    </div>
+                </div>
+                <p className="mt-4 text-[10px] text-gray-500 font-bold uppercase tracking-widest">Community Recommendations</p>
+            </div>
+
+            {/* UID Card with Disconnect */}
+            <div className="bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl relative overflow-hidden group hover:border-red-500/30 transition-colors">
+                <div className="flex justify-between items-start mb-3">
+                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Game Identity</p>
+                    <button 
+                        onClick={handleDisconnect}
+                        className="text-red-500 hover:bg-red-500/10 p-1.5 rounded-lg transition"
+                        title="Disconnect Account"
+                    >
+                        <XMarkIcon className="h-4 w-4" />
+                    </button>
+                </div>
+                <h2 className="text-3xl font-black text-white italic tracking-widest font-mono">{user.ffUid}</h2>
+                <div className="mt-4 pt-4 border-t border-white/5 flex items-center space-x-2">
+                    <span className="w-2 h-2 bg-ff-success rounded-full animate-pulse"></span>
+                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest italic">Live Global Sync</span>
+                </div>
+            </div>
+          </div>
+        ) : (
+          <div className="animate-fade-in">
+             <div className="bg-gray-900/50 backdrop-blur-md rounded-3xl border border-ff-orange/30 p-12 text-center shadow-[0_0_50px_rgba(255,107,53,0.1)]">
+                <IdentificationIcon className="h-16 w-16 text-ff-orange mx-auto mb-6 opacity-30" />
+                <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-4">Connect Your Profile</h1>
+                <p className="text-gray-400 font-bold uppercase tracking-widest text-[11px] mb-8 max-w-sm mx-auto leading-relaxed">
+                    Link your Free Fire UID to unlock advanced combat metrics and participate in elite tournaments.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-lg mx-auto">
+                     <input 
+                        type="text" 
+                        value={newFfUid}
+                        onChange={(e) => setNewFfUid(e.target.value)}
+                        placeholder="ENTER 8-10 DIGIT UID"
+                        className="bg-black/60 border border-white/10 rounded-2xl px-6 py-4 text-white font-mono text-center tracking-[0.3em] focus:outline-none focus:border-ff-orange transition w-full shadow-2xl"
+                     />
+                     <button 
+                        onClick={handleUpdateUid}
+                        disabled={isUpdatingUid}
+                        className="w-full sm:w-auto bg-ff-orange hover:bg-orange-600 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-xl transition active:scale-95 disabled:opacity-50"
+                     >
+                        {isUpdatingUid ? 'Syncing...' : 'Connect'}
+                     </button>
+                </div>
+             </div>
+          </div>
+        )}
+
+        {/* Detailed Stats Block */}
+        {user.ffUid && (
+          <div className="space-y-8 animate-fade-in-up">
+              
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Left Column: Financial & Game Info */}
+                  <div className="lg:col-span-2 space-y-8">
+                      {/* Sub Stats Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <MiniStat label="Rank Points" value={user.ffData?.basicInfo?.rankingPoints || '1500+'} color="text-ff-orange" />
+                          <MiniStat label="Credit Score" value={user.ffData?.creditScoreInfo?.creditScore || '100'} color="text-ff-success" />
+                          <MiniStat label="Season ID" value={user.ffData?.basicInfo?.seasonId || '50'} color="text-blue-400" />
+                          <MiniStat label="K/D Ratio" value={user.stats?.kdRatio || '0.00'} color="text-purple-400" />
+                      </div>
+
+                      {/* Main Financial Card */}
+                      <div className="bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-3xl p-8 flex flex-col md:flex-row items-center justify-between shadow-2xl">
+                          <div>
+                              <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Arena Wallet</p>
+                              <h3 className="text-5xl font-black text-white italic">₹{user.walletBalance}</h3>
+                              <p className="text-gray-400 text-[10px] font-bold uppercase mt-2 tracking-widest">Total Earnings: ₹{user.totalWinnings || 0}</p>
+                          </div>
+                          <button 
                             onClick={() => navigate('/wallet')}
-                            className="mt-6 bg-green-600/20 hover:bg-green-600/40 text-green-400 border border-green-500/30 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition active:scale-95"
-                        >
-                            Manage Wallet
-                        </button>
-                    </div>
-                    
-                    <div className="bg-black/30 p-8 rounded-2xl border-b-4 border-ff-orange text-center flex flex-col justify-center hover:bg-black/40 transition">
-                        <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-2">Total Winnings</p>
-                        <p className="text-4xl font-black text-white italic">₹{user.totalWinnings || 0}</p>
-                        <p className="text-[9px] text-ff-orange font-bold uppercase mt-2 opacity-60">Career Earnings</p>
-                    </div>
+                            className="mt-6 md:mt-0 bg-white text-black px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-ff-orange hover:text-white transition-all shadow-xl active:scale-95"
+                          >
+                            Manage Funds
+                          </button>
+                      </div>
 
-                    <div className="bg-black/30 p-8 rounded-2xl border-b-4 border-blue-500 text-center flex flex-col justify-center hover:bg-black/40 transition">
-                        <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-2">Role</p>
-                        <p className="text-4xl font-black text-white uppercase italic">{user.role || 'Player'}</p>
-                        <p className="text-[9px] text-blue-400 font-bold uppercase mt-2 opacity-60">Account Status</p>
-                    </div>
-                 </div>
-            </div>
+                      {/* Official API Metadata Section */}
+                      <div className="bg-gray-900/40 border border-white/5 rounded-3xl p-8">
+                          <div className="flex items-center space-x-3 mb-8">
+                              <ChartBarIcon className="h-5 w-5 text-ff-orange" />
+                              <h3 className="text-sm font-black text-white uppercase tracking-[0.2em]">Game Account Metadata</h3>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-10 gap-x-8">
+                               <InfoItem label="Account ID" value={user.ffData?.basicInfo?.accountId} />
+                               <InfoItem label="Release Version" value={user.ffData?.basicInfo?.releaseVersion} />
+                               <InfoItem label="Create At" value={user.ffData?.basicInfo?.createAt ? new Date(user.ffData.basicInfo.createAt * 1000).toLocaleDateString() : 'N/A'} />
+                               <InfoItem label="Honor Score" value={user.ffData?.basicInfo?.honorScore || '100'} />
+                               {/* Loop additional fields */}
+                               <InfoItem label="CS Rank Points" value={user.ffData?.basicInfo?.csRankingPoints} />
+                               <InfoItem label="BR Max Rank" value={user.ffData?.basicInfo?.maxRank} />
+                               <InfoItem label="CS Max Rank" value={user.ffData?.basicInfo?.csMaxRank} />
+                               <InfoItem label="Diamond Cost" value={user.ffData?.diamondCostRes?.diamondCost || '0'} />
+                          </div>
+                      </div>
+                  </div>
 
-            {/* In-Game Combat Stats */}
-            <div>
-                 <h2 className="text-xs font-black text-gray-500 uppercase tracking-[0.3em] mb-8 border-l-4 border-blue-500 pl-4 ml-2">Combat Performance</h2>
-                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard label="K/D Ratio" value={user.stats?.kdRatio || '0.00'} color="border-blue-500" />
-                    <StatCard label="Matches" value={user.stats?.matchesPlayed || 0} color="border-purple-500" />
-                    <StatCard label="Wins" value={user.stats?.wins || 0} color="border-ff-success" />
-                    <StatCard label="Ranked" value={user.ffData?.basicInfo?.rankPoint || 'N/A'} color="border-red-500" />
-                 </div>
-            </div>
+                  {/* Right Column: Social & Assets */}
+                  <div className="space-y-8">
+                      {/* Pet Info */}
+                      {user.ffData?.petInfo && (
+                          <div className="bg-gray-900/80 backdrop-blur-xl border border-white/10 rounded-3xl p-8 group">
+                              <div className="flex items-center space-x-3 mb-6">
+                                  <ShieldCheckIcon className="h-5 w-5 text-ff-orange" />
+                                  <h3 className="text-sm font-black text-white uppercase tracking-widest">Active Companion</h3>
+                              </div>
+                              <div className="flex items-center space-x-6">
+                                  <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center transform group-hover:rotate-6 transition">
+                                      <span className="text-2xl opacity-50">🐾</span>
+                                  </div>
+                                  <div>
+                                      <p className="text-xl font-black text-white italic">LVL {user.ffData.petInfo.level}</p>
+                                      <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">PET ID: {user.ffData.petInfo.id}</p>
+                                  </div>
+                              </div>
+                          </div>
+                      )}
 
-            {/* Official API Data Section */}
-            {user.ffData && user.ffData.basicInfo && (
-                <div className="bg-black/40 border border-white/5 rounded-3xl p-8 animate-fade-in">
-                    <div className="flex items-center space-x-3 mb-6">
-                        <ChartBarIcon className="h-5 w-5 text-ff-orange" />
-                        <h3 className="text-sm font-black text-white uppercase tracking-widest">Official Fire Services Info</h3>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-y-8 gap-x-12">
-                         <InfoItem label="Region" value={user.ffData.basicInfo.region || 'IND'} />
-                         <InfoItem label="Honor Score" value={user.ffData.basicInfo.honorScore} />
-                         <InfoItem label="EXP" value={user.ffData.basicInfo.exp} />
-                         <InfoItem label="Create Time" value={user.ffData.basicInfo.createTime ? new Date(user.ffData.basicInfo.createTime * 1000).toLocaleDateString() : 'Active User'} />
-                         
-                         {/* Dynamic rendering for any additional basicInfo fields */}
-                         {Object.entries(user.ffData.basicInfo).map(([key, value]) => {
-                            const skip = ['nickname', 'level', 'region', 'honorScore', 'exp', 'createTime', 'rankPoint'];
-                            if (skip.includes(key) || typeof value === 'object') return null;
-                            return <InfoItem key={key} label={key.replace(/([A-Z])/g, ' $1').toUpperCase()} value={String(value)} />;
-                        })}
-                    </div>
-                    
-                    {/* Secondary Stats like Rank Information if available in other */}
-                    {(user.other?.rankInfo || user.other?.basicInfo) && (
-                         <div className="mt-8 pt-8 border-t border-white/5 grid grid-cols-2 md:grid-cols-4 gap-y-8 gap-x-12">
-                             <InfoItem label="Likes" value={user.other?.basicInfo?.liked} />
-                             <InfoItem label="Credit Score" value={user.other?.creditScoreInfo?.creditScore} />
-                             <InfoItem label="Season" value={user.other?.basicInfo?.seasonId} />
-                             <InfoItem label="Version" value={user.other?.basicInfo?.releaseVersion} />
-                         </div>
-                    )}
-                </div>
-            )}
-
-            {/* Additional Game Assets Section */}
-            {user.other && (user.other.clanBasicInfo || user.other.socialInfo || user.other.petInfo) && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in">
-                    {/* Clan Info */}
-                    {user.other.clanBasicInfo && (
-                        <div className="bg-black/40 border border-white/5 rounded-3xl p-8 group hover:bg-black/50 transition">
+                      {/* Clan Info */}
+                      <div className="bg-gray-900 border border-white/10 rounded-3xl p-8">
                             <div className="flex items-center space-x-3 mb-6">
                                 <ShieldCheckIcon className="h-5 w-5 text-ff-success" />
-                                <h3 className="text-sm font-black text-white uppercase tracking-widest">Clan Affiliation</h3>
+                                <h3 className="text-sm font-black text-white uppercase tracking-widest">Guild Affiliation</h3>
                             </div>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-2xl font-black text-white italic">{user.other.clanBasicInfo.clanName}</p>
-                                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">LVL {user.other.clanBasicInfo.clanLevel} • {user.other.clanBasicInfo.memberNum} Members</p>
-                                </div>
-                                <div className="h-12 w-12 bg-ff-success/10 border border-ff-success/20 rounded-xl flex items-center justify-center">
-                                    <span className="text-ff-success font-black text-xl italic leading-none">C</span>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Social/Signature */}
-                    {user.other.socialInfo && (
-                        <div className="bg-black/40 border border-white/5 rounded-3xl p-8 group hover:bg-black/50 transition">
-                            <div className="flex items-center space-x-3 mb-6">
-                                <IdentificationIcon className="h-5 w-5 text-blue-400" />
-                                <h3 className="text-sm font-black text-white uppercase tracking-widest">Player Signature</h3>
-                            </div>
-                            <div className="bg-black/40 p-4 rounded-xl border border-white/5 min-h-[60px] flex items-center">
-                                <p className="text-sm font-mono text-gray-300 italic">
-                                    {user.other.socialInfo.signature || "No official signature set."}
+                            <div>
+                                <h3 className="text-2xl font-black text-white italic">{user.ffData?.clanBasicInfo?.clanName || 'NO GUILD'}</h3>
+                                <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">
+                                    {user.ffData?.clanBasicInfo?.clanLevel ? `LVL ${user.ffData.clanBasicInfo.clanLevel} • Verified Global` : 'Loner Status'}
                                 </p>
                             </div>
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-        
-        {!user.digiLockerVerified && (
-            <div className="bg-blue-500/10 border-t border-blue-500/20 p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="flex items-center space-x-6">
-                    <div className="bg-blue-500/20 p-4 rounded-2xl border border-blue-500/30">
-                        <ShieldCheckIcon className="h-8 w-8 text-blue-400" />
-                    </div>
-                    <div>
-                        <p className="text-white font-black uppercase tracking-widest text-sm mb-1">Identity Verification Required</p>
-                        <p className="text-gray-400 text-xs max-w-md text-left">Complete DigiLocker KYC to unlock cash withdrawals and participate in premium high-stakes tournaments.</p>
-                    </div>
-                </div>
-                <button className="w-full md:w-auto bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-xl font-black uppercase tracking-[0.2em] text-[10px] transition shadow-[0_4px_15px_rgba(59,130,246,0.3)] shrink-0 active:scale-95">
-                    Verify Identity Now
-                </button>
-            </div>
+                      </div>
+
+                      {/* Social Signature */}
+                      <div className="bg-gray-900 border border-white/10 rounded-3xl p-8">
+                            <div className="flex items-center space-x-3 mb-6">
+                                <IdentificationIcon className="h-5 w-5 text-blue-400" />
+                                <h3 className="text-sm font-black text-white uppercase tracking-widest">Player Motto</h3>
+                            </div>
+                            <div className="bg-black/40 p-5 rounded-2xl border border-white/5 italic text-sm text-gray-300 font-medium">
+                                "{user.ffData?.socialInfo?.signature || "I love free fire"}"
+                            </div>
+                      </div>
+
+                      {/* Profile Skills */}
+                      {user.ffData?.profileInfo?.equipedSkills && (
+                          <div className="bg-gray-900 border border-white/10 rounded-3xl p-8">
+                             <div className="flex items-center space-x-3 mb-6">
+                                <KeyIcon className="h-5 w-5 text-purple-400" />
+                                <h3 className="text-sm font-black text-white uppercase tracking-widest">Tactical Loadout</h3>
+                             </div>
+                             <div className="flex flex-wrap gap-2">
+                                {user.ffData.profileInfo.equipedSkills.map((skill, i) => (
+                                    <span key={i} className="bg-purple-500/10 border border-purple-500/20 text-purple-400 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter">
+                                        {getSkillName(skill.skillId)}
+                                    </span>
+                                ))}
+                             </div>
+                          </div>
+                      )}
+                  </div>
+              </div>
+
+              {/* Account Status Flags (Bottom) */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-12 border-t border-white/5">
+                   <StatusFlag label="Show BR Rank" active={user.ffData?.basicInfo?.showBrRank} />
+                   <StatusFlag label="Show CS Rank" active={user.ffData?.basicInfo?.showCsRank} />
+                   <StatusFlag label="KYC Verified" active={user.digiLockerVerified} />
+                   <StatusFlag label="Wallet Linked" active={!!user.walletBalance} />
+              </div>
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-const StatCard = ({ label, value, color }) => (
-    <div className={`bg-black/30 p-8 rounded-2xl border-b-4 ${color} text-center hover:bg-black/40 transition group`}>
-        <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-2">{label}</p>
-        <p className="text-4xl font-black text-white italic group-hover:scale-105 transition">{value}</p>
+const MiniStat = ({ label, value, color }) => (
+    <div className="bg-gray-900/50 border border-white/5 p-4 rounded-2xl text-center hover:bg-white/5 transition">
+        <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest mb-1">{label}</p>
+        <p className={`text-xl font-black italic tracking-tighter ${color}`}>{value || 'N/A'}</p>
+    </div>
+);
+
+const StatusFlag = ({ label, active }) => (
+    <div className="flex items-center space-x-3 bg-black/20 px-4 py-3 rounded-xl border border-white/5">
+        <div className={`w-2.5 h-2.5 rounded-full ${active ? 'bg-ff-success shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-gray-700'}`}></div>
+        <span className={`text-[10px] font-black uppercase tracking-widest ${active ? 'text-gray-300' : 'text-gray-600'}`}>{label}</span>
     </div>
 );
 
 const InfoItem = ({ label, value }) => (
     <div>
-        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{label}</p>
-        <p className="text-sm font-bold text-gray-200">{value}</p>
+        <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-1.5">{label}</p>
+        <p className="text-sm font-bold text-gray-200">{value || '---'}</p>
     </div>
 );
 

@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         try {
-          const res = await api.get('/api/auth/profile');
+          const res = await api.get('/api/ff/auth/profile');
           setUser(res.data);
           localStorage.setItem('ff_user', JSON.stringify(res.data));
         } catch (err) {
@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (ffUid, password) => {
     try {
-      const res = await api.post('/api/auth/login', { ffUid, password });
+      const res = await api.post('/api/ff/auth/login', { ffUid, password });
       const { token, user: userData } = res.data;
       
       setToken(token);
@@ -93,7 +93,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (ffUid, password, inGameName, level) => {
     try {
-      const res = await api.post('/api/auth/register', { 
+      const res = await api.post('/api/ff/auth/register', { 
         ffUid, 
         password,
         inGameName,
@@ -109,6 +109,22 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error(err);
       return { success: false, error: err.response?.data?.error || 'Registration failed' };
+    }
+  };
+
+  const googleLogin = async (credential) => {
+    try {
+      const res = await api.post('/api/ff/auth/google', { credential });
+      const { token, user: userData } = res.data;
+      
+      setToken(token);
+      setUser(userData);
+      localStorage.setItem('ff_token', token);
+      localStorage.setItem('ff_user', JSON.stringify(userData));
+      return { success: true };
+    } catch (err) {
+      console.error(err);
+      return { success: false, error: err.response?.data?.error || 'Google login failed' };
     }
   };
 
@@ -129,7 +145,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading, updateUserWallet }}>
+    <AuthContext.Provider value={{ user, token, login, googleLogin, register, logout, loading, updateUserWallet }}>
       {children}
     </AuthContext.Provider>
   );

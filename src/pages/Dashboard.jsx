@@ -38,11 +38,11 @@ const Dashboard = () => {
                         setTournaments([]);
                         return;
                     }
-                    const res = await api.get('/api/tournaments/enrolled');
+                    const res = await api.get('/api/ff/tournaments/enrolled');
                     const filtered = res.data.filter(t => t.status === enrolledStatus);
                     setTournaments(filtered);
                 } else {
-                    const res = await api.get('/api/tournaments/live');
+                    const res = await api.get('/api/ff/tournaments/live');
                     const filtered = res.data.filter(t => {
                         const matchedMode = (mode === 'clashsquad' ? 'Clash Squad' : 'Classic');
                         return t.gameMode === matchedMode && t.teamSize === teamSize;

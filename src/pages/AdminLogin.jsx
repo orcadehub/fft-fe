@@ -16,7 +16,7 @@ const AdminLogin = () => {
     setLoading(true);
 
     try {
-      const res = await api.post('/api/moderators/login', {
+      const res = await api.post('/api/ff/moderators/login', {
         username,
         password
       });

@@ -92,7 +92,7 @@ const AdminDashboard = () => {
     const fetchTournaments = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/api/moderators/tournaments');
+            const res = await api.get('/api/ff/moderators/tournaments');
             const filtered = res.data.filter(t => {
                 const matchedMode = (mode === 'clashsquad' ? 'Clash Squad' : 'Classic');
                 return t.gameMode === matchedMode && t.teamSize === teamSize;
@@ -112,7 +112,7 @@ const AdminDashboard = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await api.get('/api/moderators/users');
+            const res = await api.get('/api/ff/moderators/users');
             setUsers(res.data);
         } catch (err) {
             console.error(err);
@@ -140,7 +140,7 @@ const AdminDashboard = () => {
     const confirmDelete = async () => {
         if (deleteConfirmText !== 'DELETE') return;
         try {
-            await api.delete(`/api/moderators/tournaments/${deletingTournamentId}`);
+            await api.delete(`/api/ff/moderators/tournaments/${deletingTournamentId}`);
             setTournaments(tournaments.filter(t => t._id !== deletingTournamentId));
             setIsDeleteModalOpen(false);
             toast.success('Tournament deleted and players refunded');
@@ -167,7 +167,7 @@ const AdminDashboard = () => {
     const handleEditSubmit = async (e) => {
         e.preventDefault();
         try {
-            await api.put(`/api/moderators/tournaments/${editingTournament._id}`, {
+            await api.put(`/api/ff/moderators/tournaments/${editingTournament._id}`, {
                 roomCode: editForm.roomCode,
                 password: editForm.password,
                 status: editForm.status
@@ -184,7 +184,7 @@ const AdminDashboard = () => {
     const handleUserPassSubmit = async (e) => {
         e.preventDefault();
         try {
-            await api.put(`/api/moderators/users/${editingUser._id}/password`, {
+            await api.put(`/api/ff/moderators/users/${editingUser._id}/password`, {
                 password: newUserPass
             });
             setIsUserPassModalOpen(false);
@@ -207,7 +207,7 @@ const AdminDashboard = () => {
                 startTime: createStartTime ? new Date(createStartTime).toISOString() : undefined,
                 prizePool: Number(createPrizePool)
             };
-            await api.post('/api/moderators/tournaments', payload);
+            await api.post('/api/ff/moderators/tournaments', payload);
             setIsCreateModalOpen(false);
             fetchTournaments();
             toast.success('Tournament created successfully');

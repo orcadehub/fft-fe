@@ -39,7 +39,7 @@ const SupportCenter = () => {
 
   const fetchChat = async () => {
     try {
-      const res = await api.get('/api/support/my-chat');
+      const res = await api.get('/api/ff/support/my-chat');
       setMessages(res.data.messages || []);
     } catch (err) {
       console.error('Support chat fetch error:', err);
@@ -58,7 +58,7 @@ const SupportCenter = () => {
       setInputText('');
       
       // Post to backend
-      await api.post('/api/support/send', { text });
+      await api.post('/api/ff/support/send', { text });
       
       // Note: receive_support_message will update the UI via socket
     } catch (err) {

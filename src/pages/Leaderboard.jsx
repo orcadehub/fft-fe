@@ -12,7 +12,7 @@ const Leaderboard = () => {
     useEffect(() => {
         const fetchLeaderboard = async () => {
             try {
-                const res = await api.get('/api/tournaments/leaderboard');
+                const res = await api.get('/api/ff/tournaments/leaderboard');
                 setPlayers(res.data);
             } catch (err) {
                 console.error('Leaderboard error:', err);

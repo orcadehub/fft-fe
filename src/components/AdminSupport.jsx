@@ -49,7 +49,7 @@ const AdminSupport = () => {
 
   const fetchChats = async () => {
     try {
-      const res = await api.get('/api/support/admin/chats');
+      const res = await api.get('/api/ff/support/admin/chats');
       setChats(res.data);
     } catch (err) {
       console.error(err);
@@ -61,7 +61,7 @@ const AdminSupport = () => {
 
   const fetchMessages = async (userId) => {
     try {
-      const res = await api.get(`/api/support/admin/chats/${userId}`);
+      const res = await api.get(`/api/ff/support/admin/chats/${userId}`);
       setMessages(res.data.messages);
       // Mark as read in local state
       setChats(prev => prev.map(c => c.user._id === userId ? { ...c, unreadCount: { ...c.unreadCount, admin: 0 } } : c));
@@ -83,7 +83,7 @@ const AdminSupport = () => {
     try {
       const text = inputText;
       setInputText('');
-      await api.post(`/api/support/admin/send/${selectedChat.user._id}`, { text });
+      await api.post(`/api/ff/support/admin/send/${selectedChat.user._id}`, { text });
       
       // Update local messages immediately for better UX
       setMessages(prev => [...prev, { sender: 'admin', text, timestamp: new Date() }]);

@@ -26,7 +26,7 @@ const CreateTournament = () => {
     
     try {
       const payload = { ...formData, entryFee: isFree ? 0 : formData.entryFee };
-      const res = await api.post('/api/tournaments', payload);
+      const res = await api.post('/api/ff/tournaments', payload);
       navigate(`/tournament/${res.data._id}`);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create tournament');

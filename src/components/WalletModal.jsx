@@ -21,51 +21,16 @@ const WalletModal = ({ isOpen, onClose, requiredAmount, onRechargeSuccess }) => 
     setLoading(true);
 
     try {
-      const orderRes = await api.post('/api/payments/recharge', {
+      const orderRes = await api.post('/api/ff/payments/recharge', {
         amount: parseInt(amount)
       });
 
-      const { order, keyId } = orderRes.data;
-
-      const options = {
-        key: keyId,
-        amount: order.amount,
-        currency: order.currency,
-        name: "FF Tournament Wallet",
-        description: `Add ₹${amount} to Wallet`,
-        order_id: order.id,
-        handler: async (response) => {
-          try {
-            const verifyRes = await api.post('/api/payments/verify', {
-              ...response
-            });
-
-            if (verifyRes.data.status === 'Recharge Successful') {
-              setSuccess(true);
-              // Update local user state if useAuth supports it
-              if (updateUserWallet) {
-                updateUserWallet(verifyRes.data.walletBalance);
-              }
-              setTimeout(() => {
-                setSuccess(false);
-                onRechargeSuccess(verifyRes.data.walletBalance);
-                onClose();
-              }, 2000);
-            }
-          } catch (err) {
-            toast.error('Payment verification failed.');
-          }
-        },
-        prefill: {
-          name: user.inGameName,
-        },
-        theme: {
-          color: "#FF6B35"
-        }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      if (orderRes.data.success && orderRes.data.redirectUrl) {
+        // Redirect to PhonePe
+        window.location.href = orderRes.data.redirectUrl;
+      } else {
+        toast.error('Failed to initiate PhonePe recharge');
+      }
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to initialize recharge');
     } finally {
@@ -87,70 +52,61 @@ const WalletModal = ({ isOpen, onClose, requiredAmount, onRechargeSuccess }) => 
            <XMarkIcon className="h-6 w-6" />
         </button>
 
-        {success ? (
-          <div className="text-center py-8">
-            <CheckCircleIcon className="h-20 w-20 text-green-500 mx-auto mb-4" />
-            <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Recharge Success</h2>
-            <p className="text-gray-400 mt-2">Your wallet has been updated.</p>
+        <div className="flex items-center space-x-4 mb-8">
+          <div className="bg-ff-orange/20 p-3 rounded-2xl border border-ff-orange/20">
+            <CreditCardIcon className="h-8 w-8 text-ff-orange" />
           </div>
-        ) : (
-          <>
-            <div className="flex items-center space-x-4 mb-8">
-              <div className="bg-ff-orange/20 p-3 rounded-2xl border border-ff-orange/20">
-                <CreditCardIcon className="h-8 w-8 text-ff-orange" />
-              </div>
-              <h2 className="text-3xl font-black uppercase text-white tracking-widest italic">Recharge Wallet</h2>
-            </div>
+          <h2 className="text-3xl font-black uppercase text-white tracking-widest italic">Recharge Wallet</h2>
+        </div>
 
-            {requiredAmount > 0 && (
-              <div className="bg-red-500/5 border border-red-500/20 p-4 rounded-xl mb-6">
-                <p className="text-xs text-red-400 font-bold uppercase tracking-widest">Insufficient Balance</p>
-                <p className="text-white text-sm font-medium mt-1">You need ₹{requiredAmount} more to join this match.</p>
-              </div>
-            )}
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-[10px] text-gray-500 font-black uppercase tracking-widest mb-2 ml-1">Enter Amount (Multiples of 100)</label>
-                <div className="relative">
-                  <CurrencyRupeeIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-500" />
-                  <input 
-                    type="number" 
-                    step="100"
-                    min="100"
-                    className="w-full bg-black/40 border border-white/5 rounded-2xl py-5 pl-14 pr-4 focus:outline-none focus:border-ff-orange transition text-2xl font-black text-white italic"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                {[100, 200, 500].map(val => (
-                  <button 
-                    key={val}
-                    onClick={() => setAmount(val)}
-                    className={`py-3 rounded-xl font-black text-sm uppercase transition border ${amount == val ? 'bg-ff-orange border-ff-orange text-white' : 'bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
-                  >
-                    ₹{val}
-                  </button>
-                ))}
-              </div>
-
-              <button 
-                onClick={handleRecharge}
-                disabled={loading}
-                className="w-full py-5 bg-ff-gradient text-white rounded-2xl font-black uppercase tracking-widest text-lg shadow-lg hover:shadow-[0_0_20px_rgba(255,107,53,0.4)] active:scale-95 transition disabled:opacity-50"
-              >
-                {loading ? 'Opening Razorpay...' : `Recharge ₹${amount}`}
-              </button>
-              
-              <p className="text-[10px] text-gray-600 font-bold text-center uppercase tracking-[0.2em] px-4">Secure payment powered by Razorpay. Funds are instantly added to your FF Arena wallet.</p>
-            </div>
-          </>
+        {requiredAmount > 0 && (
+          <div className="bg-red-500/5 border border-red-500/20 p-4 rounded-xl mb-6">
+            <p className="text-xs text-red-400 font-bold uppercase tracking-widest">Insufficient Balance</p>
+            <p className="text-white text-sm font-medium mt-1">You need ₹{requiredAmount} more to join this match.</p>
+          </div>
         )}
+
+        <div className="space-y-6">
+          <div>
+            <label className="block text-[10px] text-gray-500 font-black uppercase tracking-widest mb-2 ml-1">Enter Amount (Min. ₹100)</label>
+            <div className="relative">
+              <CurrencyRupeeIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-500" />
+              <input 
+                type="number" 
+                min="100"
+                className="w-full bg-black/40 border border-white/5 rounded-2xl py-5 pl-14 pr-4 focus:outline-none focus:border-ff-orange transition text-2xl font-black text-white italic"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            {[100, 200, 500].map(val => (
+              <button 
+                key={val}
+                onClick={() => setAmount(val)}
+                className={`py-3 rounded-xl font-black text-sm uppercase transition border ${amount == val ? 'bg-ff-orange border-ff-orange text-white' : 'bg-white/5 border-white/5 text-gray-400 hover:text-white hover:bg-white/10'}`}
+              >
+                ₹{val}
+              </button>
+            ))}
+          </div>
+
+          <button 
+            onClick={handleRecharge}
+            disabled={loading}
+            className="w-full py-5 bg-ff-gradient text-white rounded-2xl font-black uppercase tracking-widest text-lg shadow-lg hover:shadow-[0_0_20px_rgba(255,107,53,0.4)] active:scale-95 transition disabled:opacity-50"
+          >
+            {loading ? 'Initializing...' : `Proceed to Pay ₹${amount}`}
+          </button>
+          
+          <div className="flex items-center justify-center space-x-2 pt-2">
+            <p className="text-[10px] text-gray-600 font-bold uppercase tracking-[0.2em]">Secure payment via</p>
+            <span className="text-white font-black italic text-xs">PhonePe</span>
+          </div>
+        </div>
       </motion.div>
     </div>
   );
 };
-
 export default WalletModal;

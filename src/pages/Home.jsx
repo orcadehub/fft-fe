@@ -24,7 +24,7 @@ const Home = () => {
   useEffect(() => {
     const fetchTournaments = async () => {
       try {
-        const res = await api.get('/api/tournaments/live');
+        const res = await api.get('/api/ff/tournaments/live');
         setTournaments(res.data);
       } catch (err) {
         console.error(err);

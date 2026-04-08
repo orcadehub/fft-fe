@@ -25,7 +25,7 @@ const Wallet = () => {
 
   const fetchTransactions = async () => {
     try {
-      const res = await api.get('/api/payments/transactions');
+      const res = await api.get('/api/ff/payments/transactions');
       setTransactions(res.data);
     } catch (err) {
       toast.error('Failed to load transactions');

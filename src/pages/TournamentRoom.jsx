@@ -27,7 +27,7 @@ const TournamentRoom = () => {
   useEffect(() => {
     const fetchTournament = async () => {
       try {
-        const res = await api.get(`/api/tournaments/${id}`);
+        const res = await api.get(`/api/ff/tournaments/${id}`);
         setTournament(res.data);
       } catch (err) {
         toast.error('Failed to load tournament');
@@ -65,7 +65,7 @@ const TournamentRoom = () => {
     
     try {
       // Direct Join via Wallet
-      const res = await api.post(`/api/tournaments/${id}/join`);
+      const res = await api.post(`/api/ff/tournaments/${id}/join`);
 
       if (res.data.tournament) {
         setTournament(res.data.tournament);
