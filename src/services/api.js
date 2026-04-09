@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const isProduction = window.location.hostname !== 'localhost';
 const API_BASE_URL = isProduction 
-  ? 'https://backend.fftourney.com' 
+  ? 'https://backend.orcode.in' 
   : 'http://localhost:4000';
 
 const api = axios.create({
